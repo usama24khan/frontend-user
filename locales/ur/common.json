@@ -1,12 +1,101 @@
 {
-  "app": { "name": "کے کے بی 4 مینٹیننس سسٹم", "tagline": "ہاؤسنگ سوسائٹی مینٹیننس مینجمنٹ" },
-  "nav": { "dashboard": "ڈیش بورڈ", "blocks": "بلاکس", "phases": "فیز", "leaderboard": "لیڈربورڈ", "plots": "پلاٹس", "payments": "ادائیگیاں", "notices": "نوٹسز", "import": "ڈیٹا درآمد", "settings": "سیٹنگز", "logout": "لاگ آؤٹ" },
-  "dashboard": { "totalPlots": "کل پلاٹس", "totalCollected": "کل وصولی", "totalRemaining": "کل باقی", "collectionRate": "وصولی کی شرح", "blockWise": "بلاک کے مطابق وصولی", "phaseWise": "فیز کے مطابق وصولی", "monthlyTrend": "ماہانہ رجحان", "topPaid": "سب سے زیادہ ادائیگی" },
-  "plot": { "plotNumber": "پلاٹ نمبر", "ownerName": "مالک کا نام", "block": "بلاک", "phase": "فیز", "mcRate": "ماہانہ فیس", "totalDue": "کل واجب الادا", "totalPaid": "کل ادا شدہ", "remaining": "باقی", "allotmentStatus": "حیثیت", "paymentHistory": "ادائیگی کی تاریخ", "selectYear": "سال منتخب کریں", "allYears": "تمام سال" },
-  "months": { "jan": "جنوری", "feb": "فروری", "mar": "مارچ", "apr": "اپریل", "may": "مئی", "jun": "جون", "jul": "جولائی", "aug": "اگست", "sep": "ستمبر", "oct": "اکتوبر", "nov": "نومبر", "dec": "دسمبر" },
-  "status": { "active": "فعال", "cancelled": "منسوخ", "unsold": "غیر فروخت شدہ", "paid": "ادا کیا", "unpaid": "غیر ادا شدہ", "partial": "جزوی" },
-  "notice": { "generate": "نوٹس بنائیں", "forPlot": "پلاٹ کے لیے نوٹس", "forBlock": "بلاک کے لیے نوٹس", "forPhase": "فیز کے لیے نوٹس", "preview": "پیش نظارہ", "download": "PDF ڈاؤن لوڈ", "print": "پرنٹ", "dueAmount": "واجب الادا رقم", "paymentInstructions": "ادائیگی کی ہدایات" },
-  "leaderboard": { "title": "لیڈربورڈ", "topPlots": "سب سے زیادہ ادائیگی والے پلاٹس", "topBlocks": "سب سے زیادہ وصولی والے بلاکس", "defaulters": "ڈیفالٹرز", "rank": "درجہ", "amount": "ادا شدہ رقم" },
-  "filters": { "selectYear": "سال منتخب کریں", "selectBlock": "بلاک منتخب کریں", "selectPhase": "فیز منتخب کریں", "monthRange": "ماہ کی حد", "from": "سے", "to": "تک", "search": "نام یا پلاٹ سے تلاش کریں...", "sortBy": "ترتیب", "mostPaid": "سب سے زیادہ ادائیگی", "leastPaid": "سب سے کم ادائیگی" },
-  "errors": { "notFound": "نہیں ملا", "serverError": "سرور ایرر۔ دوبارہ کوشش کریں۔", "unauthorized": "غیر مجاز", "loginFailed": "غلط معلومات" }
+  "app": {
+    "name": "کے کے بی 4 مینٹیننس سسٹم",
+    "tagline": "ہاؤسنگ سوسائٹی مینٹیننس مینجمنٹ"
+  },
+  "nav": {
+    "dashboard": "ڈیش بورڈ",
+    "blocks": "بلاکس",
+    "phases": "فیز",
+    "leaderboard": "لیڈربورڈ",
+    "plots": "پلاٹس",
+    "payments": "ادائیگیاں",
+    "notices": "نوٹسز",
+    "import": "ڈیٹا درآمد",
+    "settings": "سیٹنگز",
+    "logout": "لاگ آؤٹ"
+  },
+  "dashboard": {
+    "totalPlots": "کل پلاٹس",
+    "totalCollected": "کل وصولی",
+    "totalRemaining": "کل باقی",
+    "collectionRate": "وصولی کی شرح",
+    "blockWise": "بلاک کے مطابق وصولی",
+    "phaseWise": "فیز کے مطابق وصولی",
+    "monthlyTrend": "ماہانہ رجحان",
+    "topPaid": "سب سے زیادہ ادائیگی"
+  },
+  "plot": {
+    "plotNumber": "پلاٹ نمبر",
+    "ownerName": "مالک کا نام",
+    "block": "بلاک",
+    "phase": "فیز",
+    "mcRate": "ماہانہ فیس",
+    "totalDue": "کل واجب الادا",
+    "totalPaid": "کل ادا شدہ",
+    "remaining": "باقی",
+    "allotmentStatus": "حیثیت",
+    "paymentHistory": "ادائیگی کی تاریخ",
+    "selectYear": "سال منتخب کریں",
+    "allYears": "تمام سال"
+  },
+  "months": {
+    "jan": "جنوری",
+    "feb": "فروری",
+    "mar": "مارچ",
+    "apr": "اپریل",
+    "may": "مئی",
+    "jun": "جون",
+    "jul": "جولائی",
+    "aug": "اگست",
+    "sep": "ستمبر",
+    "oct": "اکتوبر",
+    "nov": "نومبر",
+    "dec": "دسمبر"
+  },
+  "status": {
+    "active": "فعال",
+    "cancelled": "منسوخ",
+    "unsold": "غیر فروخت شدہ",
+    "paid": "ادا کیا",
+    "unpaid": "غیر ادا شدہ",
+    "partial": "جزوی"
+  },
+  "notice": {
+    "generate": "نوٹس بنائیں",
+    "forPlot": "پلاٹ کے لیے نوٹس",
+    "forBlock": "بلاک کے لیے نوٹس",
+    "forPhase": "فیز کے لیے نوٹس",
+    "preview": "پیش نظارہ",
+    "download": "PDF ڈاؤن لوڈ",
+    "print": "پرنٹ",
+    "dueAmount": "واجب الادا رقم",
+    "paymentInstructions": "ادائیگی کی ہدایات"
+  },
+  "leaderboard": {
+    "title": "لیڈربورڈ",
+    "topPlots": "سب سے زیادہ ادائیگی والے پلاٹس",
+    "topBlocks": "سب سے زیادہ وصولی والے بلاکس",
+    "defaulters": "ڈیفالٹرز",
+    "rank": "درجہ",
+    "amount": "ادا شدہ رقم"
+  },
+  "filters": {
+    "selectYear": "سال منتخب کریں",
+    "selectBlock": "بلاک منتخب کریں",
+    "selectPhase": "فیز منتخب کریں",
+    "monthRange": "ماہ کی حد",
+    "from": "سے",
+    "to": "تک",
+    "search": "نام یا پلاٹ سے تلاش کریں...",
+    "sortBy": "ترتیب",
+    "mostPaid": "سب سے زیادہ ادائیگی",
+    "leastPaid": "سب سے کم ادائیگی"
+  },
+  "errors": {
+    "notFound": "نہیں ملا",
+    "serverError": "سرور ایرر۔ دوبارہ کوشش کریں۔",
+    "unauthorized": "غیر مجاز",
+    "loginFailed": "غلط معلومات"
+  }
 }

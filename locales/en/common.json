@@ -1,12 +1,101 @@
 {
-  "app": { "name": "KKB4 Maintenance System", "tagline": "Housing Society Maintenance Management" },
-  "nav": { "dashboard": "Dashboard", "blocks": "Blocks", "phases": "Phases", "leaderboard": "Leaderboard", "plots": "Plots", "payments": "Payments", "notices": "Notices", "import": "Import Data", "settings": "Settings", "logout": "Logout" },
-  "dashboard": { "totalPlots": "Total Plots", "totalCollected": "Total Collected", "totalRemaining": "Total Remaining", "collectionRate": "Collection Rate", "blockWise": "Block-wise Collection", "phaseWise": "Phase-wise Collection", "monthlyTrend": "Monthly Trend", "topPaid": "Top Paid Plots" },
-  "plot": { "plotNumber": "Plot Number", "ownerName": "Owner Name", "block": "Block", "phase": "Phase", "mcRate": "Monthly Charge", "totalDue": "Total Due", "totalPaid": "Total Paid", "remaining": "Remaining", "allotmentStatus": "Status", "paymentHistory": "Payment History", "selectYear": "Select Year", "allYears": "All Years" },
-  "months": { "jan": "January", "feb": "February", "mar": "March", "apr": "April", "may": "May", "jun": "June", "jul": "July", "aug": "August", "sep": "September", "oct": "October", "nov": "November", "dec": "December" },
-  "status": { "active": "Active", "cancelled": "Cancelled", "unsold": "Unsold", "paid": "Paid", "unpaid": "Unpaid", "partial": "Partial" },
-  "notice": { "generate": "Generate Notice", "forPlot": "Notice for Plot", "forBlock": "Notice for Block", "forPhase": "Notice for Phase", "preview": "Preview", "download": "Download PDF", "print": "Print", "dueAmount": "Amount Due", "paymentInstructions": "Payment Instructions" },
-  "leaderboard": { "title": "Leaderboard", "topPlots": "Top Paid Plots", "topBlocks": "Top Blocks", "defaulters": "Defaulters", "rank": "Rank", "amount": "Amount Paid" },
-  "filters": { "selectYear": "Select Year", "selectBlock": "Select Block", "selectPhase": "Select Phase", "monthRange": "Month Range", "from": "From", "to": "To", "search": "Search by name or plot...", "sortBy": "Sort By", "mostPaid": "Most Paid", "leastPaid": "Least Paid" },
-  "errors": { "notFound": "Not found", "serverError": "Server error. Please try again.", "unauthorized": "Unauthorized", "loginFailed": "Invalid credentials" }
+  "app": {
+    "name": "KKB4 Maintenance System",
+    "tagline": "Housing Society Maintenance Management"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "blocks": "Blocks",
+    "phases": "Phases",
+    "leaderboard": "Leaderboard",
+    "plots": "Plots",
+    "payments": "Payments",
+    "notices": "Notices",
+    "import": "Import Data",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "totalPlots": "Total Plots",
+    "totalCollected": "Total Collected",
+    "totalRemaining": "Total Remaining",
+    "collectionRate": "Collection Rate",
+    "blockWise": "Block-wise Collection",
+    "phaseWise": "Phase-wise Collection",
+    "monthlyTrend": "Monthly Trend",
+    "topPaid": "Top Paid Plots"
+  },
+  "plot": {
+    "plotNumber": "Plot Number",
+    "ownerName": "Owner Name",
+    "block": "Block",
+    "phase": "Phase",
+    "mcRate": "Monthly Charge",
+    "totalDue": "Total Due",
+    "totalPaid": "Total Paid",
+    "remaining": "Remaining",
+    "allotmentStatus": "Status",
+    "paymentHistory": "Payment History",
+    "selectYear": "Select Year",
+    "allYears": "All Years"
+  },
+  "months": {
+    "jan": "January",
+    "feb": "February",
+    "mar": "March",
+    "apr": "April",
+    "may": "May",
+    "jun": "June",
+    "jul": "July",
+    "aug": "August",
+    "sep": "September",
+    "oct": "October",
+    "nov": "November",
+    "dec": "December"
+  },
+  "status": {
+    "active": "Active",
+    "cancelled": "Cancelled",
+    "unsold": "Unsold",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "partial": "Partial"
+  },
+  "notice": {
+    "generate": "Generate Notice",
+    "forPlot": "Notice for Plot",
+    "forBlock": "Notice for Block",
+    "forPhase": "Notice for Phase",
+    "preview": "Preview",
+    "download": "Download PDF",
+    "print": "Print",
+    "dueAmount": "Amount Due",
+    "paymentInstructions": "Payment Instructions"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "topPlots": "Top Paid Plots",
+    "topBlocks": "Top Blocks",
+    "defaulters": "Defaulters",
+    "rank": "Rank",
+    "amount": "Amount Paid"
+  },
+  "filters": {
+    "selectYear": "Select Year",
+    "selectBlock": "Select Block",
+    "selectPhase": "Select Phase",
+    "monthRange": "Month Range",
+    "from": "From",
+    "to": "To",
+    "search": "Search by name or plot...",
+    "sortBy": "Sort By",
+    "mostPaid": "Most Paid",
+    "leastPaid": "Least Paid"
+  },
+  "errors": {
+    "notFound": "Not found",
+    "serverError": "Server error. Please try again.",
+    "unauthorized": "Unauthorized",
+    "loginFailed": "Invalid credentials"
+  }
 }
