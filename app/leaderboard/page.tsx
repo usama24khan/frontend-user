@@ -1,202 +1,298 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import api from "../../utils/api";
 import Card from "../../components/ui/Card";
-import SectionLabel from "../../components/ui/SectionLabel";
-import PageHeader from "../../components/ui/PageHeader";
 import ProgressBar from "../../components/ui/ProgressBar";
-import YearSelector from "../../components/filters/YearSelector";
 import Spinner from "../../components/ui/Spinner";
 
-const fmt = (n: number) =>
-  n >= 1_000_000 ? `₨ ${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `₨ ${(n / 1_000).toFixed(0)}K` : `₨ ${n}`;
-
-const RANK_STYLES: Record<number, { bg: string; color: string }> = {
-  0: { bg: "#faeeda", color: "#854f0b" },
-  1: { bg: "#d3d1c7", color: "#2c2c2a" },
-  2: { bg: "#faeeda", color: "#ba7517" },
+const formatPKR = (n: number) => {
+  return "₨ " + Math.round(n).toLocaleString("en-PK");
 };
 
-const MOCK_TOP_PLOTS = [
-  { plot: { _id: "1", ownerName: "Muhammad Salman", plotBlock: "A-14" }, totalReceived: 4200000, totalDue: 4800000, percentage: 88 },
-  { plot: { _id: "2", ownerName: "Ayesha Malik", plotBlock: "B-07" }, totalReceived: 3900000, totalDue: 4800000, percentage: 81 },
-  { plot: { _id: "3", ownerName: "Tariq Hussain", plotBlock: "E-22" }, totalReceived: 3500000, totalDue: 4800000, percentage: 73 },
-  { plot: { _id: "4", ownerName: "Sana Fatima", plotBlock: "C-11" }, totalReceived: 3100000, totalDue: 4800000, percentage: 65 },
-  { plot: { _id: "5", ownerName: "Umar Farooq", plotBlock: "D-03" }, totalReceived: 2800000, totalDue: 4800000, percentage: 58 },
-  { plot: { _id: "6", ownerName: "Hina Rasheed", plotBlock: "A-31" }, totalReceived: 2600000, totalDue: 4800000, percentage: 54 },
-  { plot: { _id: "7", ownerName: "Bilal Ahmed", plotBlock: "F-19" }, totalReceived: 2400000, totalDue: 4800000, percentage: 50 },
-];
-
-const MOCK_TOP_BLOCKS = [
-  { block: "E", phase: 2, collectionRate: 85, totalCollected: 12900000 },
-  { block: "B", phase: 1, collectionRate: 85, totalCollected: 10400000 },
-  { block: "A", phase: 1, collectionRate: 80, totalCollected: 8200000 },
-  { block: "D", phase: 2, collectionRate: 79, totalCollected: 9100000 },
-  { block: "L", phase: 3, collectionRate: 78, totalCollected: 11200000 },
-];
-
-const MOCK_DEFAULTERS = [
-  { plot: { _id: "10", ownerName: "Kashif Mehmood", plotBlock: "G-42", allotmentStatus: "Active" }, totalDue: 4800 },
-  { plot: { _id: "11", ownerName: "Zubair Shah", plotBlock: "H-15", allotmentStatus: "Active" }, totalDue: 4800 },
-  { plot: { _id: "12", ownerName: "Nadia Parveen", plotBlock: "K-08", allotmentStatus: "Active" }, totalDue: 4800 },
-  { plot: { _id: "13", ownerName: "Faisal Raza", plotBlock: "I-23", allotmentStatus: "Cancelled" }, totalDue: 4800 },
-];
-
 const TABS = [
-  { key: "plots", label: "Top Plots" },
+  { key: "plots", label: "Top Paid Plots" },
   { key: "blocks", label: "Top Blocks" },
-  { key: "defaulters", label: "Defaulters" },
+  { key: "defaulters", label: "Defaulters list" },
 ] as const;
 
 export default function LeaderboardPage() {
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [year, setYear] = useState(2026);
   const [activeTab, setActiveTab] = useState<"plots" | "blocks" | "defaulters">("plots");
   const [loading, setLoading] = useState(true);
+  const [topPlots, setTopPlots] = useState<any[]>([]);
+  const [topBlocks, setTopBlocks] = useState<any[]>([]);
+  const [defaulters, setDefaulters] = useState<any[]>([]);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 350);
+    let active = true;
+    const fetchLeaderboard = async () => {
+      setLoading(true);
+      try {
+        if (activeTab === "plots") {
+          const res: any = await api.get(`/stats/top-plots?year=${year}`);
+          if (active && res.success) setTopPlots(res.data || []);
+        } else if (activeTab === "blocks") {
+          const res: any = await api.get(`/stats/top-blocks?year=${year}`);
+          if (active && res.success) setTopBlocks(res.data || []);
+        } else if (activeTab === "defaulters") {
+          const res: any = await api.get(`/stats/defaulters?year=${year}`);
+          if (active && res.success) {
+            const zeroPayment = res.data.zeroPayment || [];
+            const noRecord = res.data.noRecord || [];
+            const combined = [
+              ...zeroPayment.map((p: any) => ({
+                plot: p.plot,
+                totalDue: p.totalDue,
+              })),
+              ...noRecord.map((plot: any) => ({
+                plot,
+                totalDue: 200 * 12,
+              })),
+            ];
+            setDefaulters(combined);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch leaderboard:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchLeaderboard();
+    return () => {
+      active = false;
+    };
   }, [year, activeTab]);
 
-  return (
-    <div style={{ padding: "28px 28px 48px", maxWidth: 1100, margin: "0 auto" }}>
-      <PageHeader title="Leaderboard" subtitle="Rankings and defaulters list" right={<YearSelector value={year} onChange={setYear} />} />
+  // Styles for rank medals
+  const getRankBadgeStyle = (idx: number) => {
+    if (idx === 0) return "bg-amber-100 text-amber-800 border-amber-200 font-extrabold"; // Gold
+    if (idx === 1) return "bg-slate-200 text-slate-800 border-slate-300 font-extrabold"; // Silver
+    if (idx === 2) return "bg-orange-100 text-orange-800 border-orange-200 font-extrabold"; // Bronze
+    return "bg-gray-50 text-gray-500 border-gray-100";
+  };
 
-      {/* Tabs */}
-      <div style={{ display: "inline-flex", background: "#f3f4f6", padding: 3, borderRadius: 10, marginBottom: 20, gap: 2 }}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: "7px 18px", borderRadius: 8, fontSize: 12, fontWeight: 500, border: "none", cursor: "pointer",
-              background: activeTab === tab.key ? "#fff" : "transparent",
-              color: activeTab === tab.key ? (tab.key === "defaulters" ? "#a32d2d" : "#3b6d11") : "#6b7280",
-              boxShadow: activeTab === tab.key ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-              transition: "all 0.15s",
-            }}
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      {/* Premium Header */}
+      <div className="bg-gradient-to-r from-emerald-800 to-green-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
+        <div className="space-y-1 relative z-10">
+          <h1 className="text-3xl font-extrabold tracking-tight">Society Rankings</h1>
+          <p className="text-emerald-100 text-sm max-w-xl font-medium">
+            Compare collection leaders, rank blocks by recovery percentages, and audit overdue registries.
+          </p>
+        </div>
+
+        {/* Custom Selector Panel */}
+        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 relative z-10 shrink-0">
+          <span className="text-emerald-200 uppercase tracking-wider text-[10px] font-bold">Reporting Year</span>
+          <select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold text-sm"
           >
-            {tab.label}
+            {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+              <option key={y} value={y} className="text-gray-900 font-semibold">
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Tabs segment controller */}
+      <div className="flex bg-gray-100 p-1.5 rounded-2xl max-w-md gap-1">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`flex-1 text-center py-2 px-3 rounded-xl text-xs font-bold transition-all duration-150 ${
+              activeTab === t.key
+                ? "bg-white text-emerald-800 shadow-sm"
+                : "text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            {t.label}
           </button>
         ))}
       </div>
 
-      {loading ? <Spinner /> : (
+      {/* Main card list */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Spinner />
+        </div>
+      ) : (
         <Card>
-          {/* Top Plots tab */}
-          {activeTab === "plots" && (
-            <>
-              <SectionLabel>Top paid plots — {year}</SectionLabel>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {MOCK_TOP_PLOTS.map((item, idx) => {
-                  const rs = RANK_STYLES[idx] ?? { bg: "#f9fafb", color: "#6b7280" };
-                  return (
-                    <Link key={idx} href={`/plots/${item.plot._id}`} style={{ textDecoration: "none" }}>
-                      <div
-                        style={{
-                          display: "flex", alignItems: "center", gap: 10, padding: "11px 8px",
-                          borderBottom: idx < MOCK_TOP_PLOTS.length - 1 ? "0.5px solid rgba(0,0,0,0.06)" : "none",
-                          cursor: "pointer", borderRadius: 6, transition: "background 0.15s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      >
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: rs.bg, color: rs.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
-                          {idx + 1}
+          <div className="p-2 space-y-4">
+            {/* 1. TOP PLOTS */}
+            {activeTab === "plots" && (
+              <div className="divide-y divide-gray-100">
+                <div className="pb-3">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Highest Paid Plots — {year}
+                  </h3>
+                </div>
+
+                <div className="pt-2 divide-y divide-gray-100/60 max-h-[500px] overflow-y-auto pr-1">
+                  {topPlots.map((item, idx) => (
+                    <Link key={idx} href={`/plots/${item.plot._id}`} className="block">
+                      <div className="flex items-center justify-between gap-4 py-3 px-2 rounded-2xl hover:bg-gray-50/70 transition-all duration-150">
+                        <div className="flex items-center gap-3">
+                          {/* Rank badge */}
+                          <div
+                            className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs shrink-0 ${getRankBadgeStyle(
+                              idx
+                            )}`}
+                          >
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">
+                              {item.plot.ownerName}
+                            </p>
+                            <p className="text-xs text-gray-400 font-semibold mt-0.5">
+                              Plot {item.plot.plotBlock} — Phase {item.plot.phase}
+                            </p>
+                          </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.plot.ownerName}</p>
-                          <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>Plot {item.plot.plotBlock}</p>
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: "#3b6d11", whiteSpace: "nowrap" }}>{fmt(item.totalReceived)}</span>
+
+                        <span className="text-sm font-extrabold text-emerald-800 shrink-0">
+                          {formatPKR(item.totalReceived)}
+                        </span>
                       </div>
                     </Link>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Top Blocks tab */}
-          {activeTab === "blocks" && (
-            <>
-              <SectionLabel>Top blocks by collection rate — {year}</SectionLabel>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {MOCK_TOP_BLOCKS.map((item, idx) => {
-                  const rs = RANK_STYLES[idx] ?? { bg: "#f9fafb", color: "#6b7280" };
-                  return (
-                    <Link key={idx} href={`/blocks/${item.block}`} style={{ textDecoration: "none" }}>
-                      <div
-                        style={{
-                          display: "flex", alignItems: "center", gap: 10, padding: "11px 8px",
-                          borderBottom: idx < MOCK_TOP_BLOCKS.length - 1 ? "0.5px solid rgba(0,0,0,0.06)" : "none",
-                          cursor: "pointer", borderRadius: 6, transition: "background 0.15s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      >
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: rs.bg, color: rs.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
-                          {idx + 1}
-                        </div>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "#eaf3de", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, color: "#3b6d11", flexShrink: 0 }}>
-                          {item.block}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Block {item.block}</p>
-                          <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>Phase {item.phase}</p>
-                        </div>
-                        <div style={{ width: 110 }}>
-                          <ProgressBar value={item.collectionRate} height={5} />
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: "#3b6d11", whiteSpace: "nowrap", minWidth: 60, textAlign: "right" }}>{fmt(item.totalCollected)}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Defaulters tab */}
-          {activeTab === "defaulters" && (
-            <>
-              <SectionLabel>Plots with zero payment — {year}</SectionLabel>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {MOCK_DEFAULTERS.map((item, idx) => (
-                  <Link key={idx} href={`/plots/${item.plot._id}`} style={{ textDecoration: "none" }}>
-                    <div
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "11px 8px",
-                        borderBottom: idx < MOCK_DEFAULTERS.length - 1 ? "0.5px solid rgba(0,0,0,0.06)" : "none",
-                        cursor: "pointer", borderRadius: 6, transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fcebeb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <svg width="14" height="14" fill="none" stroke="#a32d2d" strokeWidth="1.6" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M4.93 19h14.14c1.34 0 2.17-1.46 1.5-2.63L13.5 4.37c-.67-1.17-2.33-1.17-3 0L3.43 16.37c-.67 1.17.16 2.63 1.5 2.63z"/></svg>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{item.plot.ownerName}</p>
-                        <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>Plot {item.plot.plotBlock}</p>
-                      </div>
-                      <span style={{
-                        fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 999,
-                        background: item.plot.allotmentStatus === "Active" ? "#eaf3de" : "#fcebeb",
-                        color: item.plot.allotmentStatus === "Active" ? "#3b6d11" : "#a32d2d",
-                      }}>
-                        {item.plot.allotmentStatus}
-                      </span>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: "#a32d2d", whiteSpace: "nowrap" }}>{fmt(item.totalDue)}</span>
+                  ))}
+                  {topPlots.length === 0 && (
+                    <div className="text-center py-12 text-gray-400 font-medium">
+                      No plot collections recorded in {year}.
                     </div>
-                  </Link>
-                ))}
-                {MOCK_DEFAULTERS.length === 0 && (
-                  <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", padding: 40 }}>No defaulters found</p>
-                )}
+                  )}
+                </div>
               </div>
-            </>
-          )}
+            )}
+
+            {/* 2. TOP BLOCKS */}
+            {activeTab === "blocks" && (
+              <div className="divide-y divide-gray-100">
+                <div className="pb-3">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Top Performing Blocks — {year}
+                  </h3>
+                </div>
+
+                <div className="pt-2 divide-y divide-gray-100/60 max-h-[500px] overflow-y-auto pr-1">
+                  {topBlocks.map((item, idx) => (
+                    <Link key={idx} href={`/blocks/${item.block}`} className="block">
+                      <div className="flex items-center justify-between gap-4 py-3.5 px-2 rounded-2xl hover:bg-gray-50/70 transition-all duration-150">
+                        <div className="flex items-center gap-3.5">
+                          {/* Rank badge */}
+                          <div
+                            className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs shrink-0 ${getRankBadgeStyle(
+                              idx
+                            )}`}
+                          >
+                            {idx + 1}
+                          </div>
+
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold text-xs border border-emerald-100 shrink-0">
+                            {item.block}
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">
+                              Block {item.block}
+                            </p>
+                            <p className="text-xs text-gray-400 font-semibold mt-0.5">
+                              Phase {item.phase} — Collection Progress
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-6 shrink-0">
+                          <div className="w-24 hidden sm:block">
+                            <ProgressBar value={item.collectionRate} height={4} showLabel={false} />
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-extrabold text-emerald-800 block">
+                              {item.collectionRate}%
+                            </span>
+                            <span className="text-[9px] font-bold text-gray-400 block mt-0.5">
+                              {formatPKR(item.totalCollected)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  {topBlocks.length === 0 && (
+                    <div className="text-center py-12 text-gray-400 font-medium">
+                      No block progress data calculated.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 3. DEFAULTERS */}
+            {activeTab === "defaulters" && (
+              <div className="divide-y divide-gray-100">
+                <div className="pb-3">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Unpaid Property Registry — {year}
+                  </h3>
+                </div>
+
+                <div className="pt-2 divide-y divide-gray-100/60 max-h-[500px] overflow-y-auto pr-1">
+                  {defaulters.map((item, idx) => (
+                    <Link key={idx} href={`/plots/${item.plot?._id}`} className="block">
+                      <div className="flex items-center justify-between gap-4 py-3 px-2 rounded-2xl hover:bg-gray-50/70 transition-all duration-150">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center shrink-0 border border-rose-100">
+                            <svg
+                              width="14"
+                              height="14"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 9v4m0 4h.01M4.93 19h14.14c1.34 0 2.17-1.46 1.5-2.63L13.5 4.37c-.67-1.17-2.33-1.17-3 0L3.43 16.37c-.67 1.17.16 2.63 1.5 2.63z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">
+                              {item.plot?.ownerName || "Unknown Owner"}
+                            </p>
+                            <p className="text-xs text-gray-400 font-semibold mt-0.5">
+                              Plot {item.plot?.plotBlock || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 shrink-0">
+                          <span className="badge badge-red text-[9px] font-bold px-2 py-0.5">
+                            {item.plot?.allotmentStatus || "Active"}
+                          </span>
+                          <span className="text-sm font-extrabold text-rose-800">
+                            {formatPKR(item.totalDue)}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  {defaulters.length === 0 && (
+                    <div className="text-center py-12 text-gray-400 font-medium">
+                      Excellent! Zero unpaid plots detected.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
       )}
     </div>

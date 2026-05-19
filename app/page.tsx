@@ -1,9 +1,6 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import StatCard from "../components/ui/StatCard";
-import ProgressBar from "../components/ui/ProgressBar";
-import YearSelector from "../components/filters/YearSelector";
-import Spinner from "../components/ui/Spinner";
 import {
   BarChart,
   Bar,
@@ -11,710 +8,663 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
   Legend,
+  ResponsiveContainer,
 } from "recharts";
-import Link from "next/link";
+import api from "../utils/api";
+import StatCard from "../components/ui/StatCard";
+import ProgressBar from "../components/ui/ProgressBar";
+import Spinner from "../components/ui/Spinner";
 
-// ─── mock data (replace with real API calls) ────────────────────────────────
-const MOCK_OVERVIEW = {
-  totalPlots: 1240,
-  totalCollected: 48200000,
-  totalRemaining: 11800000,
-  collectionRate: 80.3,
-};
-const MOCK_BLOCKS = [
-  {
-    block: "A",
-    totalCollected: 8200000,
-    remaining: 2100000,
-    collectionRate: 80,
-  },
-  {
-    block: "B",
-    totalCollected: 10400000,
-    remaining: 1800000,
-    collectionRate: 85,
-  },
-  {
-    block: "C",
-    totalCollected: 7600000,
-    remaining: 3200000,
-    collectionRate: 70,
-  },
-  {
-    block: "D",
-    totalCollected: 9100000,
-    remaining: 2400000,
-    collectionRate: 79,
-  },
-  {
-    block: "E",
-    totalCollected: 12900000,
-    remaining: 2300000,
-    collectionRate: 85,
-  },
-];
-const MOCK_MONTHLY = [
-  { month: "jan", total: 2100000, paidCount: 42 },
-  { month: "feb", total: 3400000, paidCount: 68 },
-  { month: "mar", total: 4200000, paidCount: 84 },
-  { month: "apr", total: 3800000, paidCount: 76 },
-  { month: "may", total: 4900000, paidCount: 98 },
-  { month: "jun", total: 5100000, paidCount: 102 },
-  { month: "jul", total: 4300000, paidCount: 86 },
-  { month: "aug", total: 3900000, paidCount: 78 },
-  { month: "sep", total: 5600000, paidCount: 112 },
-  { month: "oct", total: 4700000, paidCount: 94 },
-  { month: "nov", total: 5200000, paidCount: 104 },
-  { month: "dec", total: 3000000, paidCount: 60 },
-];
-const MOCK_TOP_PLOTS = [
-  {
-    plot: { ownerName: "Muhammad Salman", plotBlock: "A-14" },
-    totalReceived: 4200000,
-  },
-  {
-    plot: { ownerName: "Ayesha Malik", plotBlock: "B-07" },
-    totalReceived: 3900000,
-  },
-  {
-    plot: { ownerName: "Tariq Hussain", plotBlock: "E-22" },
-    totalReceived: 3500000,
-  },
-  {
-    plot: { ownerName: "Sana Fatima", plotBlock: "C-11" },
-    totalReceived: 3100000,
-  },
-  {
-    plot: { ownerName: "Umar Farooq", plotBlock: "D-03" },
-    totalReceived: 2800000,
-  },
-];
-const MOCK_PHASES = [
-  { phase: 1, totalCollected: 18500000 },
-  { phase: 2, totalCollected: 15300000 },
-  { phase: 3, totalCollected: 14400000 },
+const MONTHS = [
+  { key: "jan", label: "Jan" },
+  { key: "feb", label: "Feb" },
+  { key: "mar", label: "Mar" },
+  { key: "apr", label: "Apr" },
+  { key: "may", label: "May" },
+  { key: "jun", label: "Jun" },
+  { key: "jul", label: "Jul" },
+  { key: "aug", label: "Aug" },
+  { key: "sep", label: "Sep" },
+  { key: "oct", label: "Oct" },
+  { key: "nov", label: "Nov" },
+  { key: "dec", label: "Dec" },
 ];
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  n >= 1_000_000
-    ? `₨ ${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000
-      ? `₨ ${(n / 1_000).toFixed(0)}K`
-      : `₨ ${n}`;
+const BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 
-const fmtNum = (n: number) => n.toLocaleString();
-
-// ─── chart colours ───────────────────────────────────────────────────────────
-const PHASE_COLORS = ["#3b6d11", "#185fa5", "#854f0b"];
-const GRID_COLOR = "rgba(0,0,0,0.05)";
-const TEXT_COLOR = "#9ca3af";
-
-// ─── sub-components ──────────────────────────────────────────────────────────
-function Card({
-  children,
-  style = {},
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        border: "0.5px solid rgba(0,0,0,0.08)",
-        borderRadius: 16,
-        padding: "22px 24px",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      style={{
-        fontSize: 11,
-        fontWeight: 500,
-        color: "#9ca3af",
-        letterSpacing: "0.5px",
-        textTransform: "uppercase",
-        marginBottom: 16,
-      }}
-    >
-      {children}
-    </p>
-  );
-}
-
-// ─── rank badge colours ───────────────────────────────────────────────────────
-const RANK_STYLES: Record<number, { bg: string; color: string }> = {
-  0: { bg: "#faeeda", color: "#854f0b" }, // gold
-  1: { bg: "#d3d1c7", color: "#2c2c2a" }, // silver
-  2: { bg: "#faeeda", color: "#ba7517" }, // bronze
+const formatPKR = (n: number) => {
+  return "₨ " + Math.round(n).toLocaleString("en-PK");
 };
 
-// ─── main page ────────────────────────────────────────────────────────────────
-export default function DashboardPage() {
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [overview, setOverview] = useState<any>(null);
-  const [blockStats, setBlockStats] = useState<any[]>([]);
-  const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
-  const [topPlots, setTopPlots] = useState<any[]>([]);
-  const [phaseStats, setPhaseStats] = useState<any[]>([]);
+export default function UserOverviewPage() {
+  const [year, setYear] = useState(2026);
+  const [monthFrom, setMonthFrom] = useState("jan");
+  const [monthTo, setMonthTo] = useState("dec");
+  const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
+
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Pinned plot state
+  const [pinnedPlotId, setPinnedPlotId] = useState<string | null>(null);
+  const [pinnedPlotData, setPinnedPlotData] = useState<any>(null);
+  const [loadingPinned, setLoadingPinned] = useState(false);
+
+  // Verification form
+  const [pinBlock, setPinBlock] = useState("A");
+  const [pinNumber, setPinNumber] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  // Initialize pinned plot
   useEffect(() => {
-    // Replace this block with real API calls when ready
-    setLoading(true);
-    setTimeout(() => {
-      setOverview(MOCK_OVERVIEW);
-      setBlockStats(MOCK_BLOCKS);
-      setMonthlyTrend(MOCK_MONTHLY);
-      setTopPlots(MOCK_TOP_PLOTS);
-      setPhaseStats(MOCK_PHASES);
-      setLoading(false);
-    }, 600);
-  }, [year]);
+    const saved = localStorage.getItem("kkb4_pinned_plot_id");
+    if (saved) {
+      setPinnedPlotId(saved);
+    }
+  }, []);
 
-  if (loading) return <Spinner />;
+  // Fetch pinned plot's details
+  useEffect(() => {
+    if (!pinnedPlotId) {
+      setPinnedPlotData(null);
+      return;
+    }
 
-  // ── chart data transforms ──────────────────────────────────────────────────
-  const blockChartData = blockStats.map((b) => ({
-    name: `Block ${b.block}`,
-    collected: b.totalCollected / 1_000_000,
-    remaining: b.remaining / 1_000_000,
-    rate: b.collectionRate,
-  }));
+    const fetchPinnedPlot = async () => {
+      setLoadingPinned(true);
+      try {
+        const res: any = await api.get(`/plots/${pinnedPlotId}`);
+        if (res.success) {
+          setPinnedPlotData(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch pinned plot:", err);
+      } finally {
+        setLoadingPinned(false);
+      }
+    };
 
-  const monthChartData = monthlyTrend.map((m) => ({
-    name: m.month.slice(0, 3).toUpperCase(),
-    amount: m.total / 1_000_000,
-    count: m.paidCount,
-  }));
+    fetchPinnedPlot();
+  }, [pinnedPlotId, year]);
 
-  const phaseChartData = phaseStats.map((p) => ({
-    name: `Phase ${p.phase}`,
-    value: p.totalCollected / 1_000_000,
-  }));
+  // Fetch analytics overview
+  useEffect(() => {
+    let active = true;
+    const fetchAnalytics = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let url = `/analytics/overview?year=${year}&monthFrom=${monthFrom}&monthTo=${monthTo}`;
+        if (selectedBlock) {
+          url += `&block=${selectedBlock}`;
+        } else if (selectedPhase) {
+          url += `&phase=${selectedPhase}`;
+        }
 
-  // ── tooltip formatters ────────────────────────────────────────────────────
-  const barTip = (v: any) => `₨ ${Number(v).toFixed(1)}M`;
+        const res: any = await api.get(url);
+        if (active && res.success) {
+          setData(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch analytics overview:", err);
+        setError("Could not load society performance stats.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+    return () => {
+      active = false;
+    };
+  }, [year, monthFrom, monthTo, selectedPhase, selectedBlock]);
+
+  // Filters Reset & Toggles
+  const handlePhaseChange = (phase: number | null) => {
+    setSelectedBlock(null);
+    setSelectedPhase(phase);
+  };
+
+  const handleBlockChange = (block: string | null) => {
+    setSelectedPhase(null);
+    setSelectedBlock(block);
+  };
+
+  // Pinned plot submission
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError(null);
+    if (!pinNumber.trim()) {
+      setPinError("Enter a plot number.");
+      return;
+    }
+
+    try {
+      const res: any = await api.get(
+        `/plots?block=${pinBlock}&search=${pinNumber.trim()}&limit=10`,
+      );
+      if (res.success && res.data) {
+        const exactMatch = res.data.find(
+          (p: any) =>
+            p.plotNumber.toString().trim() === pinNumber.trim() &&
+            p.block.toUpperCase() === pinBlock.toUpperCase(),
+        );
+
+        if (exactMatch) {
+          localStorage.setItem("kkb4_pinned_plot_id", exactMatch._id);
+          setPinnedPlotId(exactMatch._id);
+          setPinNumber("");
+        } else {
+          setPinError(`Plot ${pinNumber} not found in Block ${pinBlock}.`);
+        }
+      }
+    } catch (err) {
+      setPinError("Verification failed.");
+    }
+  };
+
+  const handleUnpin = () => {
+    localStorage.removeItem("kkb4_pinned_plot_id");
+    setPinnedPlotId(null);
+    setPinnedPlotData(null);
+  };
 
   return (
-    <div
-      style={{ padding: "28px 28px 48px", maxWidth: 1100, margin: "0 auto" }}
-    >
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
-          marginBottom: 28,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 500,
-              color: "#111827",
-              letterSpacing: "-0.3px",
-            }}
-          >
-            Overview
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      {/* Sleek Gradient Header */}
+      <div className="bg-gradient-to-r from-emerald-800 to-green-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
+        <div className="space-y-1 relative z-10">
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            KKB4 Society Dashboard
           </h1>
-          <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 3 }}>
-            Property collection analytics &amp; performance
+          <p className="text-emerald-100 text-sm max-w-xl font-medium">
+            Track real-time maintenance rate collection metrics, search property
+            registries, and view detailed financial declarations.
           </p>
         </div>
-        <YearSelector value={year} onChange={setYear} />
-      </div>
 
-      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        <StatCard
-          icon={
-            <svg
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              viewBox="0 0 24 24"
+        {/* Dynamic Filters Bar */}
+        <div className="flex flex-wrap items-center gap-3 bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10 relative z-10 shrink-0 self-start md:self-auto">
+          {/* Year selector */}
+          <div className="flex items-center gap-2 px-1 text-sm font-semibold">
+            <span className="text-emerald-200 uppercase tracking-wider text-[10px]">
+              Year
+            </span>
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold select-none"
             >
-              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-              <path d="M9 21V12h6v9" />
-            </svg>
-          }
-          label="Total Plots"
-          value={fmtNum(overview?.totalPlots || 0)}
-          delta="Active"
-          color="blue"
-        />
-        <StatCard
-          icon={
-            <svg
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v2m0 6v2M9.5 9.5C9.5 8.67 10.67 8 12 8s2.5.67 2.5 1.5S13.33 11 12 11s-2.5.67-2.5 1.5S10.67 16 12 16s2.5-.67 2.5-1.5" />
-            </svg>
-          }
-          label="Total Collected"
-          value={fmt(overview?.totalCollected || 0)}
-          delta="+12% vs last year"
-          color="green"
-        />
-        <StatCard
-          icon={
-            <svg
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              viewBox="0 0 24 24"
-            >
-              <path d="M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-1" />
-            </svg>
-          }
-          label="Remaining"
-          value={fmt(overview?.totalRemaining || 0)}
-          delta="Overdue"
-          color="red"
-        />
-        <StatCard
-          icon={
-            <svg
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M21 21H3M3 21V3m4 10v8m4-12v12m4-6v6m4-14v14"
-                strokeLinecap="round"
-              />
-            </svg>
-          }
-          label="Collection Rate"
-          value={`${overview?.collectionRate || 0}%`}
-          delta="On track"
-          color="amber"
-        />
-      </div>
-
-      {/* ── Charts Row ────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-          marginBottom: 16,
-        }}
-      >
-        {/* Block-wise bar */}
-        <Card>
-          <SectionLabel>Block-wise collection</SectionLabel>
-          {/* manual legend */}
-          <div style={{ display: "flex", gap: 14, marginBottom: 12 }}>
-            {[
-              { label: "Collected", color: "#3b6d11" },
-              { label: "Remaining", color: "#e5e7eb" },
-            ].map((l) => (
-              <span
-                key={l.label}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 11,
-                  color: "#6b7280",
-                }}
-              >
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 2,
-                    background: l.color,
-                    display: "inline-block",
-                  }}
-                />
-                {l.label}
-              </span>
-            ))}
-          </div>
-          <ResponsiveContainer width="100%" height={230}>
-            <BarChart data={blockChartData} barCategoryGap="30%">
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke={GRID_COLOR}
-                vertical={false}
-              />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 11, fill: TEXT_COLOR }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: TEXT_COLOR }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `${v}M`}
-              />
-              <Tooltip
-                formatter={barTip}
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "0.5px solid rgba(0,0,0,0.08)",
-                  fontSize: 12,
-                }}
-              />
-              <Bar
-                dataKey="collected"
-                fill="#3b6d11"
-                radius={[5, 5, 0, 0]}
-                name="Collected"
-              />
-              <Bar
-                dataKey="remaining"
-                fill="#e5e7eb"
-                radius={[5, 5, 0, 0]}
-                name="Remaining"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Phase donut */}
-        <Card>
-          <SectionLabel>Phase-wise breakdown</SectionLabel>
-          <div style={{ display: "flex", gap: 14, marginBottom: 12 }}>
-            {phaseChartData.map((p, i) => (
-              <span
-                key={p.name}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 11,
-                  color: "#6b7280",
-                }}
-              >
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 2,
-                    background: PHASE_COLORS[i],
-                    display: "inline-block",
-                  }}
-                />
-                {p.name} — ₨{p.value.toFixed(1)}M
-              </span>
-            ))}
-          </div>
-          <ResponsiveContainer width="100%" height={210}>
-            <PieChart>
-              <Pie
-                data={phaseChartData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={58}
-                outerRadius={90}
-                paddingAngle={3}
-              >
-                {phaseChartData.map((_, i) => (
-                  <Cell
-                    key={i}
-                    fill={PHASE_COLORS[i % PHASE_COLORS.length]}
-                    stroke="none"
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(v: any) => `₨ ${Number(v).toFixed(1)}M`}
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "0.5px solid rgba(0,0,0,0.08)",
-                  fontSize: 12,
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
-
-      {/* ── Monthly Trend ────────────────────────────────────────────────── */}
-      <Card style={{ marginBottom: 16 }}>
-        <SectionLabel>Monthly collection trend — {year}</SectionLabel>
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={monthChartData}>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke={GRID_COLOR}
-              vertical={false}
-            />
-            <XAxis
-              dataKey="name"
-              tick={{ fontSize: 11, fill: TEXT_COLOR }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: TEXT_COLOR }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v) => `${v}M`}
-            />
-            <Tooltip
-              formatter={(v: any) => `₨ ${Number(v).toFixed(1)}M`}
-              contentStyle={{
-                borderRadius: 8,
-                border: "0.5px solid rgba(0,0,0,0.08)",
-                fontSize: 12,
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="amount"
-              stroke="#3b6d11"
-              strokeWidth={2.5}
-              dot={{ fill: "#3b6d11", r: 4, strokeWidth: 0 }}
-              activeDot={{ r: 6, fill: "#3b6d11", strokeWidth: 0 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* ── Bottom Row ────────────────────────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Top paid plots */}
-        <Card>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 16,
-            }}
-          >
-            <SectionLabel>Top paid plots</SectionLabel>
-            <Link
-              href="/leaderboard"
-              style={{
-                fontSize: 12,
-                color: "#3b6d11",
-                fontWeight: 500,
-                textDecoration: "none",
-              }}
-            >
-              View all →
-            </Link>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {(topPlots || []).slice(0, 5).map((item: any, idx: number) => {
-              const rs = RANK_STYLES[idx] ?? {
-                bg: "#f9fafb",
-                color: "#6b7280",
-              };
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 0",
-                    borderBottom:
-                      idx < 4 ? "0.5px solid rgba(0,0,0,0.06)" : "none",
-                  }}
+              {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+                <option
+                  key={y}
+                  value={y}
+                  className="text-gray-900 font-semibold"
                 >
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      background: rs.bg,
-                      color: rs.color,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 12,
-                      fontWeight: 500,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {idx + 1}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: "#111827",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {item.plot?.ownerName || "N/A"}
-                    </p>
-                    <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>
-                      Plot {item.plot?.plotBlock || "—"}
-                    </p>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: "#3b6d11",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {fmt(item.totalReceived || 0)}
-                  </span>
-                </div>
-              );
-            })}
-            {(!topPlots || topPlots.length === 0) && (
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "#9ca3af",
-                  textAlign: "center",
-                  padding: 20,
-                }}
-              >
-                No data for this year
-              </p>
-            )}
+                  {y}
+                </option>
+              ))}
+            </select>
           </div>
-        </Card>
 
-        {/* Block summary */}
-        <Card>
-          <SectionLabel>Block summary</SectionLabel>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 0,
-              maxHeight: 340,
-              overflowY: "auto",
-            }}
-          >
-            {blockStats.map((b: any) => (
-              <Link
-                key={b.block}
-                href={`/blocks/${b.block}`}
-                style={{ textDecoration: "none" }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 8px",
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#f9fafb")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
+          <div className="w-[1px] h-5 bg-white/20" />
+
+          {/* Month Range Selectors */}
+          <div className="flex items-center gap-2 px-1 text-sm font-semibold">
+            <span className="text-emerald-200 uppercase tracking-wider text-[10px]">
+              From
+            </span>
+            <select
+              value={monthFrom}
+              onChange={(e) => setMonthFrom(e.target.value)}
+              className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold"
+            >
+              {MONTHS.map((m) => (
+                <option
+                  key={m.key}
+                  value={m.key}
+                  className="text-gray-900 font-semibold"
                 >
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "#eaf3de",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "#3b6d11",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {b.block}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: 5,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: "#111827",
-                        }}
-                      >
-                        Block {b.block}
+                  {m.label}
+                </option>
+              ))}
+            </select>
+
+            <span className="text-emerald-200 uppercase tracking-wider text-[10px]">
+              To
+            </span>
+            <select
+              value={monthTo}
+              onChange={(e) => setMonthTo(e.target.value)}
+              className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold"
+            >
+              {MONTHS.map((m) => (
+                <option
+                  key={m.key}
+                  value={m.key}
+                  className="text-gray-900 font-semibold"
+                >
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Grid: owner card + quick filters */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Pinned Plot card with custom glassmorphism / styling */}
+        <div className="lg:col-span-2 card p-5 relative overflow-hidden flex flex-col justify-between">
+          {pinnedPlotId ? (
+            loadingPinned || !pinnedPlotData ? (
+              <div className="flex justify-center items-center h-48">
+                <Spinner size={32} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping shrink-0" />
+                      Pinned Plot: {pinnedPlotData.plotBlock}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      Registered Owner:{" "}
+                      <span className="font-bold text-gray-800">
+                        {pinnedPlotData.ownerName}
                       </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 500,
-                          color: "#3b6d11",
-                        }}
-                      >
-                        {b.collectionRate}%
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`badge ${
+                        pinnedPlotData.allotmentStatus === "Active"
+                          ? "badge-green"
+                          : "badge-red"
+                      }`}
+                    >
+                      {pinnedPlotData.allotmentStatus}
+                    </span>
+                    <button
+                      onClick={handleUnpin}
+                      className="btn btn-outline text-xs px-2.5 py-1"
+                    >
+                      Change Plot
+                    </button>
+                  </div>
+                </div>
+
+                {/* Plot's Payment Grid with modern circles */}
+                <div className="space-y-3.5">
+                  {(() => {
+                    const payRecord = pinnedPlotData.payments?.find(
+                      (p: any) => p.year === year,
+                    );
+                    const received = payRecord?.totalReceived || 0;
+                    const expected = payRecord?.totalDue || 4800;
+                    const remaining = Math.max(0, expected - received);
+                    const paidCount = MONTHS.filter(
+                      (m) => payRecord?.payments?.[m.key] > 0,
+                    ).length;
+
+                    return (
+                      <>
+                        <div className="flex justify-between items-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          <span>Monthly Payment Calendar — {year}</span>
+                          <span className="text-emerald-800 font-bold">
+                            Rate:{" "}
+                            {payRecord ? formatPKR(payRecord.mcRate) : "₨ 400"}
+                            /month
+                          </span>
+                        </div>
+
+                        {/* Grid */}
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1.5">
+                          {MONTHS.map((m) => {
+                            const val = payRecord?.payments?.[m.key];
+                            const isPaid =
+                              val !== null && val !== undefined && val > 0;
+
+                            return (
+                              <div
+                                key={m.key}
+                                className={`month-box ${isPaid ? "paid" : "unpaid"}`}
+                              >
+                                <span className="uppercase text-[9px] opacity-75 font-bold tracking-wider">
+                                  {m.key}
+                                </span>
+                                <span className="font-bold text-xs mt-1">
+                                  {isPaid ? formatPKR(val) : "Pending"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Totals Summary */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 border border-gray-100 p-3.5 rounded-2xl gap-3 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-gray-500">
+                              Registry Progress:
+                            </span>
+                            <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              {paidCount} / 12 Months Paid
+                            </span>
+                          </div>
+                          <div className="flex gap-4">
+                            <span className="font-medium text-gray-600">
+                              Received:{" "}
+                              <span className="font-bold text-emerald-800">
+                                {formatPKR(received)}
+                              </span>
+                            </span>
+                            <span className="font-medium text-gray-600">
+                              Remaining:{" "}
+                              <span className="font-bold text-rose-700">
+                                {formatPKR(remaining)}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-4 my-auto">
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Are you a property owner?
+                </h3>
+                <p className="text-sm text-gray-500 max-w-sm font-medium">
+                  Pin your plot details to check your dues, see your payment
+                  registers, and track society disclosures.
+                </p>
+              </div>
+
+              <form
+                onSubmit={handlePinSubmit}
+                className="w-full md:w-auto flex flex-col gap-2 shrink-0"
+              >
+                <div className="flex gap-2">
+                  <select
+                    value={pinBlock}
+                    onChange={(e) => setPinBlock(e.target.value)}
+                    className="select text-xs font-semibold"
+                  >
+                    {BLOCKS.map((b) => (
+                      <option key={b} value={b}>
+                        Block {b}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={pinNumber}
+                    onChange={(e) => setPinNumber(e.target.value)}
+                    placeholder="Plot Number (e.g. 14)"
+                    className="select text-xs font-semibold w-40"
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary text-xs px-4 py-2 shrink-0"
+                  >
+                    Verify & Pin
+                  </button>
+                </div>
+                {pinError && (
+                  <p className="text-xs text-rose-600 font-bold">{pinError}</p>
+                )}
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* Phase/Block filters in card */}
+        <div className="card p-5 flex flex-col justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-2 mb-3">
+            Society Filters
+          </h3>
+
+          <div className="space-y-4">
+            {/* Phase Selector */}
+            <div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                Phases
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => handlePhaseChange(null)}
+                  className={`btn text-xs py-1 px-3 ${
+                    selectedPhase === null && selectedBlock === null
+                      ? "btn-primary"
+                      : "btn-outline"
+                  }`}
+                >
+                  All Phases
+                </button>
+                {[1, 2, 3].map((ph) => (
+                  <button
+                    key={ph}
+                    onClick={() => handlePhaseChange(ph)}
+                    className={`btn text-xs py-1 px-3 ${
+                      selectedPhase === ph ? "btn-primary" : "btn-outline"
+                    }`}
+                  >
+                    Phase {ph}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Block Selector */}
+            <div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                Blocks
+              </span>
+              <div className="flex flex-wrap gap-1 max-h-[85px] overflow-y-auto pr-1">
+                {BLOCKS.map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => handleBlockChange(b)}
+                    className={`px-2 py-0.5 border rounded text-[11px] font-semibold transition-all ${
+                      selectedBlock === b
+                        ? "bg-emerald-50 border-emerald-300 text-emerald-800 font-bold"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    Block {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics calculations container */}
+      {loading ? (
+        <div className="flex justify-center items-center h-48">
+          <Spinner />
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-center text-sm text-red-700">
+          {error}
+        </div>
+      ) : (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <StatCard
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
+                  <path d="M9 21V12h6v9" />
+                </svg>
+              }
+              label="Total Plots"
+              value={data.totalPlots}
+              delta={`${data.activePlots} Active`}
+              color="blue"
+            />
+            <StatCard
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v2m0 6v2M9.5 9.5C9.5 8.67 10.67 8 12 8s2.5.67 2.5 1.5S13.33 11 12 11s-2.5.67-2.5 1.5S10.67 16 12 16s2.5-.67 2.5-1.5" />
+                </svg>
+              }
+              label="Collection Rate"
+              value={`${data.collectionRate}%`}
+              delta="Progress"
+              color="amber"
+            />
+            <StatCard
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+              label="Total Collected"
+              value={formatPKR(data.totalReceived)}
+              delta={`Target: ${formatPKR(data.totalDue)}`}
+              color="green"
+            />
+            <StatCard
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              }
+              label="Total Overdue"
+              value={formatPKR(data.totalRemaining)}
+              delta="Pending dues"
+              color="red"
+            />
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Recharts expected vs actual */}
+            <div className="lg:col-span-2 card p-5 flex flex-col justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-50 pb-2 mb-4">
+                Expected Dues vs Actual Received
+              </h3>
+              <div className="w-full h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.perMonthBreakdown} barCategoryGap="25%">
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#f1f5f9"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(m) => m.toUpperCase()}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => `${(v / 1_000).toFixed(0)}K`}
+                    />
+                    <Tooltip
+                      formatter={(v: any) => [formatPKR(v), ""]}
+                      contentStyle={{
+                        background: "#fff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      height={36}
+                      wrapperStyle={{ fontSize: 12 }}
+                    />
+                    <Bar
+                      dataKey="due"
+                      fill="#e2e8f0"
+                      radius={[4, 4, 0, 0]}
+                      name="Expected Due"
+                    />
+                    <Bar
+                      dataKey="received"
+                      fill="#166534"
+                      radius={[4, 4, 0, 0]}
+                      name="Actual Received"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Block Progressbars Card */}
+            <div className="card p-5 flex flex-col">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-50 pb-2 mb-4">
+                Block Collection Rates
+              </h3>
+              <div className="space-y-4.5 flex-1 overflow-y-auto max-h-[300px] pr-1.5">
+                {data.perBlockBreakdown.map((row: any) => (
+                  <div key={row.block} className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs font-bold text-gray-700">
+                      <span>
+                        Block {row.block} (Phase {row.phase})
+                      </span>
+                      <span className="text-emerald-800 font-extrabold">
+                        {row.collectionRate}%
                       </span>
                     </div>
                     <ProgressBar
-                      value={b.collectionRate}
+                      value={row.collectionRate}
                       height={5}
                       showLabel={false}
                     />
                   </div>
-                </div>
-              </Link>
-            ))}
+                ))}
+              </div>
+            </div>
           </div>
-        </Card>
-      </div>
+        </>
+      )}
     </div>
   );
 }

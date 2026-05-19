@@ -1,173 +1,276 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import api from "../../../utils/api";
 import Card from "../../../components/ui/Card";
-import SectionLabel from "../../../components/ui/SectionLabel";
-import PageHeader from "../../../components/ui/PageHeader";
 import ProgressBar from "../../../components/ui/ProgressBar";
-import YearSelector from "../../../components/filters/YearSelector";
 import Spinner from "../../../components/ui/Spinner";
 
-const fmt = (n: number) =>
-  n >= 1_000_000 ? `₨ ${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `₨ ${(n / 1_000).toFixed(0)}K` : `₨ ${n}`;
-
-const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
-const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-const MOCK_PLOT = {
-  plotBlock: "A-14", ownerName: "Muhammad Salman", block: "A", phase: 1, allotmentStatus: "Active",
-  payments: [
-    { year: 2024, mcRate: 400, payments: { jan: 400, feb: 400, mar: 400, apr: 0, may: 400, jun: 400, jul: 0, aug: 400, sep: 400, oct: 400, nov: 0, dec: 400 }, totalReceived: 3600, totalDue: 4800, remaining: 1200 },
-    { year: 2023, mcRate: 400, payments: { jan: 400, feb: 400, mar: 400, apr: 400, may: 400, jun: 400, jul: 400, aug: 400, sep: 400, oct: 400, nov: 400, dec: 400 }, totalReceived: 4800, totalDue: 4800, remaining: 0 },
-    { year: 2022, mcRate: 200, payments: { jan: 200, feb: 200, mar: 200, apr: 200, may: 0, jun: 200, jul: 200, aug: 200, sep: 0, oct: 200, nov: 200, dec: 200 }, totalReceived: 2000, totalDue: 2400, remaining: 400 },
-  ],
+const formatPKR = (n: number) => {
+  return "₨ " + Math.round(n).toLocaleString("en-PK");
 };
+
+const MONTHS = [
+  { key: "jan", label: "Jan" },
+  { key: "feb", label: "Feb" },
+  { key: "mar", label: "Mar" },
+  { key: "apr", label: "Apr" },
+  { key: "may", label: "May" },
+  { key: "jun", label: "Jun" },
+  { key: "jul", label: "Jul" },
+  { key: "aug", label: "Aug" },
+  { key: "sep", label: "Sep" },
+  { key: "oct", label: "Oct" },
+  { key: "nov", label: "Nov" },
+  { key: "dec", label: "Dec" },
+];
 
 export default function PlotDetailPage() {
   const { plotId } = useParams();
   const [plot, setPlot] = useState<any>(null);
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [year, setYear] = useState(2026);
   const [allYears, setAllYears] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => { setPlot(MOCK_PLOT); setLoading(false); }, 400);
+    let active = true;
+    const fetchPlot = async () => {
+      setLoading(true);
+      try {
+        const res: any = await api.get(`/plots/${plotId}`);
+        if (active && res.success) {
+          setPlot(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch plot detail:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    if (plotId) {
+      fetchPlot();
+    }
+    return () => {
+      active = false;
+    };
   }, [plotId]);
 
   if (loading) return <Spinner />;
-  if (!plot) return <p style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Plot not found</p>;
+  if (!plot) {
+    return (
+      <div className="p-12 text-center text-gray-500 font-semibold">
+        Plot record not found.
+      </div>
+    );
+  }
 
   const payments = plot.payments || [];
   const sel = payments.find((p: any) => p.year === year);
   const totPaid = payments.reduce((s: number, p: any) => s + (p.totalReceived || 0), 0);
-  const totDue = payments.reduce((s: number, p: any) => s + (p.totalDue || 0), 0);
 
   return (
-    <div style={{ padding: "28px 28px 48px", maxWidth: 1100, margin: "0 auto" }}>
-      {/* Header card */}
-      <Card style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: 14, background: "#eaf3de",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 14, fontWeight: 500, color: "#3b6d11",
-            }}>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      {/* Premium Header Card */}
+      <div className="bg-gradient-to-r from-emerald-800 to-green-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
+        <div className="space-y-1 relative z-10">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="bg-white/20 text-white font-extrabold px-3 py-1 rounded-xl text-xs uppercase tracking-wider">
               {plot.plotBlock}
-            </div>
-            <div>
-              <p style={{ fontSize: 18, fontWeight: 500, color: "#111827" }}>{plot.ownerName}</p>
-              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                {[`Block ${plot.block}`, `Phase ${plot.phase}`, plot.allotmentStatus].map((t, i) => (
-                  <span key={i} style={{
-                    fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 999,
-                    background: i < 2 ? "#eaf3de" : plot.allotmentStatus === "Active" ? "#eaf3de" : "#fcebeb",
-                    color: i < 2 ? "#3b6d11" : plot.allotmentStatus === "Active" ? "#3b6d11" : "#a32d2d",
-                  }}>{t}</span>
-                ))}
-              </div>
-            </div>
+            </span>
+            <span className="bg-emerald-900/40 text-emerald-100 font-semibold px-3 py-1 rounded-xl text-xs uppercase tracking-wider">
+              Block {plot.block} — Phase {plot.phase}
+            </span>
+            <span
+              className={`badge py-1 px-3 text-[9px] font-bold ${
+                plot.allotmentStatus === "Active"
+                  ? "badge-green"
+                  : "badge-red"
+              }`}
+            >
+              {plot.allotmentStatus}
+            </span>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ fontSize: 10, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px" }}>All Years</p>
-            <p style={{ fontSize: 22, fontWeight: 500, color: "#3b6d11" }}>{fmt(totPaid)}</p>
-          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight mt-2">{plot.ownerName}</h1>
+          <p className="text-emerald-100 text-sm max-w-xl font-medium mt-1">
+            Society Property Registry File detail and collection log.
+          </p>
         </div>
-      </Card>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "center" }}>
-        <YearSelector value={year} onChange={setYear} />
-        <button
-          onClick={() => setAllYears(!allYears)}
-          style={{
-            padding: "7px 16px", border: "0.5px solid rgba(0,0,0,0.12)", borderRadius: 8,
-            background: allYears ? "#eaf3de" : "#fff", cursor: "pointer", fontSize: 12,
-            fontWeight: 500, color: allYears ? "#3b6d11" : "#6b7280",
-          }}
-        >
-          {allYears ? "✓ " : ""}All Years
-        </button>
+        {/* Lifetime Paid counter */}
+        <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 relative z-10 shrink-0 self-start md:self-auto">
+          <span className="text-emerald-200 uppercase tracking-wider text-[9px] font-bold block mb-1">
+            Lifetime Paid
+          </span>
+          <span className="text-xl font-extrabold text-white block">
+            {formatPKR(totPaid)}
+          </span>
+        </div>
       </div>
 
-      {/* Month grid for selected year */}
-      {sel && !allYears && (
-        <Card style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <SectionLabel>{year} — MC: ₨ {sel.mcRate}/mo</SectionLabel>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))", gap: 8, marginBottom: 20 }}>
-            {MONTHS.map((month, i) => {
-              const val = sel.payments?.[month] || 0;
-              const isPaid = val > 0;
-              const isFull = val >= sel.mcRate;
-              return (
-                <div key={month} style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                  padding: "8px 4px", borderRadius: 10, minWidth: 60,
-                  background: isFull ? "#eaf3de" : isPaid ? "#faeeda" : "#fcebeb",
-                  color: isFull ? "#3b6d11" : isPaid ? "#854f0b" : "#a32d2d",
-                  border: `0.5px solid ${isFull ? "rgba(59,109,17,0.15)" : isPaid ? "rgba(133,79,11,0.15)" : "rgba(163,45,45,0.15)"}`,
-                }}>
-                  <span style={{ fontSize: 10, opacity: 0.7 }}>{MONTH_SHORT[i]}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>{isPaid ? val : "—"}</span>
+      {/* Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Left Side: Selectors */}
+        <div className="flex items-center gap-3">
+          {!allYears && (
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="select text-xs font-semibold"
+            >
+              {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+                <option key={y} value={y}>
+                  Year: {y}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button
+            onClick={() => setAllYears(!allYears)}
+            className={`btn text-xs font-semibold ${
+              allYears ? "btn-primary" : "btn-outline"
+            }`}
+          >
+            {allYears ? "✓ Showing All History" : "View Full History"}
+          </button>
+        </div>
+      </div>
+
+      {/* Details Container */}
+      {!allYears ? (
+        sel ? (
+          <div className="card p-6 flex flex-col gap-6">
+            <div className="flex justify-between items-center border-b border-gray-50 pb-3">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                Monthly Payment Calendar — {year}
+              </span>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-xl">
+                Rate: {formatPKR(sel.mcRate)}/month
+              </span>
+            </div>
+
+            {/* Grid */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {MONTHS.map((m) => {
+                const val = sel.payments?.[m.key] || 0;
+                const isPaid = val > 0;
+                const isFull = val >= sel.mcRate;
+
+                return (
+                  <div
+                    key={m.key}
+                    className={`month-box transition-all ${
+                      isFull ? "paid" : isPaid ? "partial" : "unpaid"
+                    }`}
+                  >
+                    <span className="uppercase text-[9px] opacity-75 font-bold tracking-wider">{m.label}</span>
+                    <span className="font-extrabold text-xs mt-1">
+                      {isPaid ? formatPKR(val) : "Pending"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Financial indicators */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  label: "Expected Due",
+                  val: formatPKR(sel.totalDue),
+                  color: "text-gray-900",
+                  bg: "bg-gray-50/50 border-gray-100",
+                },
+                {
+                  label: "Total Collected",
+                  val: formatPKR(sel.totalReceived),
+                  color: "text-emerald-800",
+                  bg: "bg-emerald-50/50 border-emerald-100",
+                },
+                {
+                  label: "Outstanding Overdue",
+                  val: formatPKR(sel.remaining),
+                  color: "text-rose-800",
+                  bg: "bg-rose-50/50 border-rose-100",
+                },
+              ].map((m) => (
+                <div
+                  key={m.label}
+                  className={`p-4 rounded-2xl border ${m.bg} flex flex-col justify-between h-[80px]`}
+                >
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    {m.label}
+                  </span>
+                  <span className={`text-base font-extrabold ${m.color} mt-1`}>{m.val}</span>
                 </div>
-              );
-            })}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            {[
-              { label: "Total Due", value: fmt(sel.totalDue), color: "#111827" },
-              { label: "Paid", value: fmt(sel.totalReceived), color: "#3b6d11" },
-              { label: "Remaining", value: fmt(sel.remaining), color: "#a32d2d" },
-            ].map((m) => (
-              <div key={m.label} style={{ background: "#fafafa", borderRadius: 10, padding: 14, textAlign: "center" }}>
-                <p style={{ fontSize: 10, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px" }}>{m.label}</p>
-                <p style={{ fontSize: 17, fontWeight: 500, color: m.color, marginTop: 4 }}>{m.value}</p>
+              ))}
+            </div>
+
+            {/* Progress status */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] font-bold text-gray-400">
+                <span>Annual Payment Progress</span>
+                <span className="text-emerald-800">
+                  {Math.round((sel.totalReceived / sel.totalDue) * 100)}% Complete
+                </span>
               </div>
-            ))}
+              <ProgressBar value={sel.totalReceived} max={sel.totalDue} height={6} />
+            </div>
           </div>
-          <div style={{ marginTop: 14 }}>
-            <ProgressBar value={sel.totalReceived} max={sel.totalDue} height={6} />
+        ) : (
+          <div className="card p-12 text-center text-gray-500 font-semibold">
+            No payment record found for the reporting period {year}.
           </div>
-        </Card>
-      )}
+        )
+      ) : (
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <div className="p-5 border-b border-gray-50">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              Annual Dues History
+            </h3>
+          </div>
 
-      {!sel && !allYears && (
-        <Card style={{ textAlign: "center", padding: 50 }}>
-          <p style={{ fontSize: 32, marginBottom: 8 }}>📋</p>
-          <p style={{ color: "#9ca3af", fontSize: 13 }}>No payment record for {year}</p>
-        </Card>
-      )}
-
-      {/* All years table */}
-      {allYears && (
-        <Card>
-          <SectionLabel>All years summary</SectionLabel>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="data-table">
             <thead>
               <tr>
-                {["Year", "MC", "Due", "Paid", "Remaining", "%"].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "#9ca3af", borderBottom: "0.5px solid rgba(0,0,0,0.06)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 500 }}>{h}</th>
-                ))}
+                {["Year", "Monthly Rate", "Total Due", "Total Received", "Outstanding", "Status %"].map(
+                  (h) => (
+                    <th key={h}>{h}</th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody>
               {payments.map((p: any) => {
                 const pct = p.totalDue > 0 ? Math.round((p.totalReceived / p.totalDue) * 100) : 0;
                 return (
-                  <tr key={p.year} onClick={() => { setYear(p.year); setAllYears(false); }} style={{ cursor: "pointer", transition: "background 0.15s" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  <tr
+                    key={p.year}
+                    onClick={() => {
+                      setYear(p.year);
+                      setAllYears(false);
+                    }}
+                    className="cursor-pointer"
                   >
-                    <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 500, borderBottom: "0.5px solid rgba(0,0,0,0.04)" }}>{p.year}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "0.5px solid rgba(0,0,0,0.04)", color: "#6b7280" }}>₨ {p.mcRate}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 13, borderBottom: "0.5px solid rgba(0,0,0,0.04)" }}>{fmt(p.totalDue)}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 500, color: "#3b6d11", borderBottom: "0.5px solid rgba(0,0,0,0.04)" }}>{fmt(p.totalReceived)}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 500, color: "#a32d2d", borderBottom: "0.5px solid rgba(0,0,0,0.04)" }}>{fmt(p.remaining)}</td>
-                    <td style={{ padding: "10px 14px", borderBottom: "0.5px solid rgba(0,0,0,0.04)" }}>
-                      <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 999, background: pct >= 70 ? "#eaf3de" : pct >= 40 ? "#faeeda" : "#fcebeb", color: pct >= 70 ? "#3b6d11" : pct >= 40 ? "#854f0b" : "#a32d2d" }}>{pct}%</span>
+                    <td className="font-extrabold text-gray-800">{p.year}</td>
+                    <td className="text-gray-500 font-semibold">{formatPKR(p.mcRate)}</td>
+                    <td className="text-gray-500 font-semibold">{formatPKR(p.totalDue)}</td>
+                    <td className="font-bold text-emerald-800">{formatPKR(p.totalReceived)}</td>
+                    <td className="font-bold text-rose-800">{formatPKR(p.remaining)}</td>
+                    <td>
+                      <span
+                        className={`badge text-[9px] font-bold ${
+                          pct >= 90
+                            ? "badge-green"
+                            : pct >= 50
+                            ? "badge-amber"
+                            : "badge-red"
+                        }`}
+                      >
+                        {pct}% Paid
+                      </span>
                     </td>
                   </tr>
                 );

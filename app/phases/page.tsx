@@ -1,135 +1,221 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Card from "../../components/ui/Card";
-import SectionLabel from "../../components/ui/SectionLabel";
-import PageHeader from "../../components/ui/PageHeader";
+import api from "../../utils/api";
 import ProgressBar from "../../components/ui/ProgressBar";
-import YearSelector from "../../components/filters/YearSelector";
 import Spinner from "../../components/ui/Spinner";
-import { PHASE_BLOCK_MAP } from "../../constants/phases";
 
-const fmt = (n: number) =>
-  n >= 1_000_000 ? `₨ ${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `₨ ${(n / 1_000).toFixed(0)}K` : `₨ ${n}`;
-
-const PHASE_COLORS: Record<number, { bg: string; color: string; bar: string }> = {
-  1: { bg: "#eaf3de", color: "#3b6d11", bar: "#3b6d11" },
-  2: { bg: "#e6f1fb", color: "#185fa5", bar: "#185fa5" },
-  3: { bg: "#faeeda", color: "#854f0b", bar: "#854f0b" },
+const formatPKR = (n: number) => {
+  return "₨ " + Math.round(n).toLocaleString("en-PK");
 };
 
-const MOCK_PHASES = [
-  { phase: 1, totalPlots: 590, totalCollected: 42800000, totalDue: 56400000, remaining: 13600000, collectionRate: 76,
-    blockStats: [
-      { block: "A", collectionRate: 80, totalCollected: 8200000 },
-      { block: "B", collectionRate: 85, totalCollected: 10400000 },
-      { block: "H", collectionRate: 73, totalCollected: 7200000 },
-      { block: "I", collectionRate: 77, totalCollected: 6900000 },
-      { block: "J", collectionRate: 73, totalCollected: 6100000 },
-      { block: "K", collectionRate: 72, totalCollected: 4300000 },
-    ]},
-  { phase: 2, totalPlots: 508, totalCollected: 41800000, totalDue: 48800000, remaining: 7000000, collectionRate: 86,
-    blockStats: [
-      { block: "C", collectionRate: 70, totalCollected: 7600000 },
-      { block: "D", collectionRate: 79, totalCollected: 9100000 },
-      { block: "E", collectionRate: 85, totalCollected: 12900000 },
-      { block: "F", collectionRate: 71, totalCollected: 6800000 },
-      { block: "G", collectionRate: 74, totalCollected: 5400000 },
-    ]},
-  { phase: 3, totalPlots: 145, totalCollected: 11200000, totalDue: 13900000, remaining: 2700000, collectionRate: 81,
-    blockStats: [
-      { block: "L", collectionRate: 81, totalCollected: 11200000 },
-    ]},
-];
+// Rich gradients and color styling for each phase
+const PHASE_THEMES: Record<number, {
+  text: string;
+  badgeBg: string;
+  progressBarColor: string;
+  glow: string;
+}> = {
+  1: {
+    text: "text-emerald-800",
+    badgeBg: "from-emerald-800 to-green-600",
+    progressBarColor: "#166534",
+    glow: "rgba(22,101,52,0.05)",
+  },
+  2: {
+    text: "text-blue-800",
+    badgeBg: "from-blue-800 to-indigo-600",
+    progressBarColor: "#1e40af",
+    glow: "rgba(30,64,175,0.05)",
+  },
+  3: {
+    text: "text-amber-800",
+    badgeBg: "from-amber-800 to-orange-600",
+    progressBarColor: "#92400e",
+    glow: "rgba(146,64,14,0.05)",
+  },
+};
 
 export default function PhasesPage() {
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [year, setYear] = useState(2026);
   const [phases, setPhases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => { setPhases(MOCK_PHASES); setLoading(false); }, 400);
+    let active = true;
+    const fetchPhases = async () => {
+      setLoading(true);
+      try {
+        const res: any = await api.get(`/phases?year=${year}`);
+        if (active && res.success) {
+          setPhases(res.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch phases:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchPhases();
+    return () => {
+      active = false;
+    };
   }, [year]);
 
-  if (loading) return <Spinner />;
-
   return (
-    <div style={{ padding: "28px 28px 48px", maxWidth: 1100, margin: "0 auto" }}>
-      <PageHeader title="Phases" subtitle="Phase-wise overview of all blocks" right={<YearSelector value={year} onChange={setYear} />} />
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      {/* Premium Header */}
+      <div className="bg-gradient-to-r from-emerald-800 to-green-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
+        <div className="space-y-1 relative z-10">
+          <h1 className="text-3xl font-extrabold tracking-tight">Phase Performance</h1>
+          <p className="text-emerald-100 text-sm max-w-xl font-medium">
+            View society breakdown by phases, track block collection summaries, and analyze recovery metrics.
+          </p>
+        </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {phases.map((phase) => {
-          const pc = PHASE_COLORS[phase.phase] || PHASE_COLORS[1];
-          return (
-            <Card key={phase.phase}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{
-                    width: 46, height: 46, borderRadius: 12, background: pc.bg,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 16, fontWeight: 500, color: pc.color,
-                  }}>
-                    P{phase.phase}
+        {/* Custom Selector Panel */}
+        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 relative z-10 shrink-0">
+          <span className="text-emerald-200 uppercase tracking-wider text-[10px] font-bold">Reporting Year</span>
+          <select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold text-sm"
+          >
+            {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+              <option key={y} value={y} className="text-gray-900 font-semibold">
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Main Listing */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Spinner />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {phases.map((phase) => {
+            const theme = PHASE_THEMES[phase.phase] || PHASE_THEMES[1];
+            return (
+              <div
+                key={phase.phase}
+                className="card p-6 relative overflow-hidden flex flex-col gap-5"
+                style={{
+                  boxShadow: `0 10px 30px -15px ${theme.glow}, 0 1px 3px rgba(0,0,0,0.03)`,
+                }}
+              >
+                {/* Visual Accent */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-[4px] bg-gradient-to-r ${theme.badgeBg}`}
+                />
+
+                {/* Info Header */}
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                  <div className="flex items-center gap-4">
+                    {/* Glowing Phase Badge */}
+                    <div
+                      className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${theme.badgeBg} text-white flex items-center justify-center font-extrabold text-lg shadow-md shrink-0`}
+                    >
+                      P{phase.phase}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Phase {phase.phase} Overview</h3>
+                      <p className="text-xs text-gray-400 font-semibold mt-0.5">
+                        Blocks registered:{" "}
+                        <span className="text-gray-600">
+                          {(phase.blockStats || []).map((b: any) => b.block).join(", ")}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontSize: 17, fontWeight: 500, color: "#111827" }}>Phase {phase.phase}</p>
-                    <p style={{ fontSize: 12, color: "#9ca3af" }}>
-                      Blocks: {(phase.blockStats || []).map((bs: any) => bs.block).join(", ")}
+
+                  {/* Total Rate Display */}
+                  <div className="text-left sm:text-right shrink-0">
+                    <p className={`text-3xl font-black ${theme.text}`}>{phase.collectionRate}%</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      Collection Rate
                     </p>
                   </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: 22, fontWeight: 500, color: pc.color }}>{phase.collectionRate}%</p>
-                  <p style={{ fontSize: 10, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px" }}>Collection Rate</p>
-                </div>
-              </div>
 
-              {/* Metric row */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
-                {[
-                  { label: "Total Plots", value: phase.totalPlots, color: "#111827" },
-                  { label: "Collected", value: fmt(phase.totalCollected), color: "#3b6d11" },
-                  { label: "Total Due", value: fmt(phase.totalDue), color: "#a32d2d" },
-                  { label: "Remaining", value: fmt(phase.remaining), color: "#854f0b" },
-                ].map((m) => (
-                  <div key={m.label} style={{ background: "#fafafa", borderRadius: 10, padding: 14 }}>
-                    <p style={{ fontSize: 10, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px" }}>{m.label}</p>
-                    <p style={{ fontSize: 17, fontWeight: 500, color: m.color, marginTop: 4 }}>{m.value}</p>
-                  </div>
-                ))}
-              </div>
+                {/* Custom Progress bar */}
+                <ProgressBar value={phase.collectionRate} height={6} showLabel={false} />
 
-              <ProgressBar value={phase.collectionRate} height={6} />
-
-              {/* Block breakdown */}
-              {phase.blockStats && phase.blockStats.length > 0 && (
-                <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
-                  {phase.blockStats.map((bs: any) => (
-                    <Link key={bs.block} href={`/blocks/${bs.block}`} style={{ textDecoration: "none" }}>
-                      <div
-                        style={{
-                          background: "#fafafa", borderRadius: 10, padding: 12,
-                          border: "0.5px solid rgba(0,0,0,0.04)", cursor: "pointer",
-                          transition: "background 0.15s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "#fafafa")}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>Block {bs.block}</span>
-                          <span style={{ fontSize: 11, fontWeight: 500, color: pc.color }}>{bs.collectionRate}%</span>
-                        </div>
-                        <ProgressBar value={bs.collectionRate} height={4} showLabel={false} />
-                      </div>
-                    </Link>
+                {/* 4 KPI Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mt-2">
+                  {[
+                    {
+                      label: "Total Plots",
+                      val: phase.totalPlots,
+                      color: "text-blue-900",
+                      bg: "bg-blue-50/50 border-blue-100",
+                    },
+                    {
+                      label: "Collected Amount",
+                      val: formatPKR(phase.totalCollected),
+                      color: "text-emerald-900",
+                      bg: "bg-emerald-50/50 border-emerald-100",
+                    },
+                    {
+                      label: "Total Dues",
+                      val: formatPKR(phase.totalDue),
+                      color: "text-gray-900",
+                      bg: "bg-gray-50/50 border-gray-100",
+                    },
+                    {
+                      label: "Outstanding Overdue",
+                      val: formatPKR(phase.remaining),
+                      color: "text-rose-900",
+                      bg: "bg-rose-50/50 border-rose-100",
+                    },
+                  ].map((m) => (
+                    <div
+                      key={m.label}
+                      className={`p-3.5 rounded-2xl border ${m.bg} flex flex-col justify-between h-[76px] transition-all hover:shadow-sm`}
+                    >
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                        {m.label}
+                      </span>
+                      <span className={`text-base font-extrabold ${m.color} mt-1`}>{m.val}</span>
+                    </div>
                   ))}
                 </div>
-              )}
-            </Card>
-          );
-        })}
-      </div>
+
+                {/* Blocks Breakdown Grid */}
+                {phase.blockStats && phase.blockStats.length > 0 && (
+                  <div className="mt-2 space-y-3">
+                    <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                      Individual Block Status
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                      {phase.blockStats.map((bs: any) => (
+                        <Link key={bs.block} href={`/blocks/${bs.block}`} className="block">
+                          <div className="p-3 bg-gray-50/50 hover:bg-white rounded-2xl border border-gray-100 hover:border-gray-200/80 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-extrabold text-gray-800">
+                                Block {bs.block}
+                              </span>
+                              <span className={`text-xs font-bold ${theme.text}`}>
+                                {bs.collectionRate}%
+                              </span>
+                            </div>
+                            <ProgressBar value={bs.collectionRate} height={4} showLabel={false} />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
