@@ -92,7 +92,7 @@ export default function PhasesPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
       {/* Premium Header */}
-      <div className="bg-gradient-to-r from-emerald-800 to-green-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div className="bg-linear-to-r from-emerald-600 to-emerald-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
         <div className="space-y-1 relative z-10">
           <h1 className="text-3xl font-extrabold tracking-tight">Phase Performance</h1>
@@ -137,7 +137,7 @@ export default function PhasesPage() {
               >
                 {/* Visual Accent */}
                 <div
-                  className={`absolute top-0 left-0 right-0 h-[4px] bg-gradient-to-r ${theme.badgeBg}`}
+                  className={`absolute top-0 left-0 right-0 h-1 bg-linear-to-r ${theme.badgeBg}`}
                 />
 
                 {/* Info Header */}
@@ -145,7 +145,7 @@ export default function PhasesPage() {
                   <div className="flex items-center gap-4">
                     {/* Glowing Phase Badge */}
                     <div
-                      className={`w-20 h-14 rounded-2xl bg-gradient-to-tr ${theme.badgeBg} text-white flex items-center justify-center font-extrabold text-sm shadow-md shrink-0 px-2`}
+                      className={`w-20 h-14 rounded-2xl bg-linear-to-tr ${theme.badgeBg} text-white flex items-center justify-center font-extrabold text-sm shadow-md shrink-0 px-2`}
                     >
                       {phase.phase}
                     </div>

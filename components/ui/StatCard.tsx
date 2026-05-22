@@ -9,34 +9,10 @@ interface StatCardProps {
 }
 
 const colorMap = {
-  green: {
-    iconBg: "#eaf3de",
-    iconColor: "#3b6d11",
-    bar: "#3b6d11",
-    deltaBg: "#eaf3de",
-    deltaText: "#3b6d11",
-  },
-  red: {
-    iconBg: "#fcebeb",
-    iconColor: "#a32d2d",
-    bar: "#a32d2d",
-    deltaBg: "#fcebeb",
-    deltaText: "#a32d2d",
-  },
-  amber: {
-    iconBg: "#faeeda",
-    iconColor: "#854f0b",
-    bar: "#854f0b",
-    deltaBg: "#faeeda",
-    deltaText: "#854f0b",
-  },
-  blue: {
-    iconBg: "#e6f1fb",
-    iconColor: "#185fa5",
-    bar: "#185fa5",
-    deltaBg: "#e6f1fb",
-    deltaText: "#185fa5",
-  },
+  green: { iconBg: "bg-emerald-50",  iconText: "text-emerald-700",  bar: "from-emerald-500 to-emerald-600",  pill: "bg-emerald-50 text-emerald-700"  },
+  red:   { iconBg: "bg-rose-50",     iconText: "text-rose-700",     bar: "from-rose-500 to-rose-600",        pill: "bg-rose-50 text-rose-700"        },
+  amber: { iconBg: "bg-amber-50",    iconText: "text-amber-700",    bar: "from-amber-500 to-amber-600",      pill: "bg-amber-50 text-amber-700"      },
+  blue:  { iconBg: "bg-blue-50",     iconText: "text-blue-700",     bar: "from-blue-500 to-blue-600",        pill: "bg-blue-50 text-blue-700"        },
 };
 
 export default function StatCard({
@@ -47,98 +23,29 @@ export default function StatCard({
   color = "green",
 }: StatCardProps) {
   const c = colorMap[color];
-  return (
-    <div
-      style={{
-        background: "var(--color-background-primary, #fff)",
-        border: "0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.1))",
-        borderRadius: 16,
-        padding: "20px 22px",
-        position: "relative",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
-      {/* accent bar */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          background: c.bar,
-        }}
-      />
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-        }}
-      >
-        <p
-          style={{
-            fontSize: 11,
-            fontWeight: 500,
-            color: "#6b7280",
-            letterSpacing: "0.5px",
-            textTransform: "uppercase",
-            marginTop: 4,
-          }}
-        >
+  return (
+    <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl px-5 py-5 shadow-sm hover:shadow-md transition-shadow">
+      <div className={`absolute inset-x-0 top-0 h-0.75 bg-linear-to-r ${c.bar}`} />
+
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mt-1">
           {label}
         </p>
-        <div
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            background: c.iconBg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: c.iconColor,
-            fontSize: 18,
-            flexShrink: 0,
-          }}
-        >
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${c.iconBg} ${c.iconText}`}>
           {icon}
         </div>
       </div>
 
-      <div>
-        <p
-          style={{
-            fontSize: 26,
-            fontWeight: 500,
-            color: "#111827",
-            letterSpacing: "-0.5px",
-            lineHeight: 1.1,
-          }}
-        >
-          {value}
-        </p>
-        {delta && (
-          <span
-            style={{
-              display: "inline-block",
-              marginTop: 8,
-              fontSize: 11,
-              fontWeight: 500,
-              color: c.deltaText,
-              background: c.deltaBg,
-              padding: "3px 8px",
-              borderRadius: 999,
-            }}
-          >
-            {delta}
-          </span>
-        )}
-      </div>
+      <p className="text-2xl sm:text-[26px] font-bold text-gray-900 tabular-nums leading-tight tracking-tight">
+        {value}
+      </p>
+
+      {delta && (
+        <span className={`inline-block mt-3 text-[11px] font-semibold px-2 py-1 rounded-full ${c.pill}`}>
+          {delta}
+        </span>
+      )}
     </div>
   );
 }

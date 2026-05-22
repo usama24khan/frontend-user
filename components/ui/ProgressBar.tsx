@@ -5,6 +5,7 @@ interface ProgressBarProps {
   max?: number;
   height?: number;
   showLabel?: boolean;
+  variant?: "auto" | "success" | "warning" | "danger";
 }
 
 export default function ProgressBar({
@@ -12,41 +13,42 @@ export default function ProgressBar({
   max = 100,
   height = 6,
   showLabel = true,
+  variant = "auto",
 }: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
-  const color = pct >= 70 ? "#3b6d11" : pct >= 40 ? "#854f0b" : "#a32d2d";
+
+  const tone =
+    variant === "auto"
+      ? pct >= 70
+        ? "success"
+        : pct >= 40
+          ? "warning"
+          : "danger"
+      : variant;
+
+  const fillClass =
+    tone === "success" ? "" : tone === "warning" ? "warning" : "danger";
+
+  const labelColor =
+    tone === "success"
+      ? "text-emerald-700"
+      : tone === "warning"
+        ? "text-amber-700"
+        : "text-rose-700";
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div className="flex items-center gap-2.5">
       <div
-        style={{
-          flex: 1,
-          height,
-          background: "#e5e7eb",
-          borderRadius: 999,
-          overflow: "hidden",
-        }}
+        className="progress-track flex-1"
+        style={{ height }}
       >
         <div
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            borderRadius: 999,
-            background: color,
-            transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
-          }}
+          className={`progress-fill ${fillClass}`.trim()}
+          style={{ width: `${pct}%` }}
         />
       </div>
       {showLabel && (
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 500,
-            color,
-            minWidth: 34,
-            textAlign: "right",
-          }}
-        >
+        <span className={`text-[11px] font-semibold tabular-nums min-w-8.5 text-right ${labelColor}`}>
           {Math.round(pct)}%
         </span>
       )}

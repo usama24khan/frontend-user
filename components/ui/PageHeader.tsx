@@ -4,35 +4,23 @@ interface PageHeaderProps {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
+  className?: string;
 }
 
-export default function PageHeader({ title, subtitle, right }: PageHeaderProps) {
+export default function PageHeader({
+  title,
+  subtitle,
+  right,
+  className = "",
+}: PageHeaderProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        gap: 12,
-        marginBottom: 28,
-      }}
-    >
+    <div className={`flex flex-wrap items-start justify-between gap-3 mb-6 ${className}`.trim()}>
       <div>
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 500,
-            color: "#111827",
-            letterSpacing: "-0.3px",
-          }}
-        >
+        <h1 className="text-xl sm:text-[22px] font-semibold text-gray-900 tracking-tight">
           {title}
         </h1>
         {subtitle && (
-          <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 3 }}>
-            {subtitle}
-          </p>
+          <p className="text-[13px] text-gray-500 mt-1">{subtitle}</p>
         )}
       </div>
       {right}

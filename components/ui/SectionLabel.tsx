@@ -1,22 +1,12 @@
 "use client";
 
-export default function SectionLabel({
-  children,
-}: {
+interface SectionLabelProps {
   children: React.ReactNode;
-}) {
+  className?: string;
+}
+
+export default function SectionLabel({ children, className = "" }: SectionLabelProps) {
   return (
-    <p
-      style={{
-        fontSize: 11,
-        fontWeight: 500,
-        color: "#9ca3af",
-        letterSpacing: "0.5px",
-        textTransform: "uppercase",
-        marginBottom: 16,
-      }}
-    >
-      {children}
-    </p>
+    <p className={`section-label mb-3 ${className}`.trim()}>{children}</p>
   );
 }

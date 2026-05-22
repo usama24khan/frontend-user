@@ -3,67 +3,47 @@
 interface YearSelectorProps {
   value: number;
   onChange: (year: number) => void;
+  min?: number;
+  max?: number;
 }
 
-const YEARS = [2021, 2022, 2023, 2024, 2025, 2026];
+export default function YearSelector({
+  value,
+  onChange,
+  min = 2012,
+  max = new Date().getFullYear(),
+}: YearSelectorProps) {
+  const canPrev = value > min;
+  const canNext = value < max;
 
-export default function YearSelector({ value, onChange }: YearSelectorProps) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div className="inline-flex items-center gap-1.5">
       <button
-        onClick={() => onChange(value - 1)}
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 8,
-          border: "0.5px solid rgba(0,0,0,0.12)",
-          background: "#fff",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 16,
-          color: "#374151",
-        }}
+        type="button"
+        onClick={() => canPrev && onChange(value - 1)}
+        disabled={!canPrev}
         aria-label="Previous year"
+        className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center"
       >
-        ‹
+        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
 
-      <div
-        style={{
-          padding: "6px 20px",
-          border: "0.5px solid rgba(0,0,0,0.12)",
-          borderRadius: 8,
-          background: "#fff",
-          fontSize: 13,
-          fontWeight: 500,
-          color: "#111827",
-          minWidth: 72,
-          textAlign: "center",
-        }}
-      >
+      <div className="px-4 py-1.5 min-w-19.5 text-center rounded-lg border border-gray-200 bg-white text-[13px] font-semibold text-gray-900 tabular-nums">
         {value}
       </div>
 
       <button
-        onClick={() => onChange(value + 1)}
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 8,
-          border: "0.5px solid rgba(0,0,0,0.12)",
-          background: "#fff",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 16,
-          color: "#374151",
-        }}
+        type="button"
+        onClick={() => canNext && onChange(value + 1)}
+        disabled={!canNext}
         aria-label="Next year"
+        className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center"
       >
-        ›
+        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
     </div>
   );

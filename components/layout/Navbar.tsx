@@ -3,7 +3,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { setLanguage } from "../../store/slices/uiSlice";
 
-export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const dispatch = useDispatch();
   const language = useSelector((state: RootState) => state.ui.language);
 
@@ -14,59 +18,38 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   };
 
   return (
-    <header
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
-        background: "rgba(255,255,255,0.85)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "0.5px solid rgba(0,0,0,0.06)",
-        height: 54,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 24px",
-      }}
-    >
-      <button
-        onClick={onMenuClick}
-        style={{
-          display: "none",
-          padding: 6,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          borderRadius: 6,
-          color: "#6b7280",
-        }}
-      >
-        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
-
-      <div />
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <header className="sticky top-0 z-30 h-16 bg-white/85 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center gap-3">
         <button
-          onClick={toggleLanguage}
-          style={{
-            padding: "5px 14px",
-            border: "0.5px solid rgba(0,0,0,0.12)",
-            borderRadius: 8,
-            background: "#fff",
-            cursor: "pointer",
-            fontSize: 12,
-            fontWeight: 500,
-            color: "#6b7280",
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-            transition: "background 0.15s",
-          }}
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open navigation"
+          className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl text-gray-700 border border-gray-200 bg-white hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
         >
-          <span style={{ fontSize: 13 }}>🌐</span>
+          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        <div className="lg:hidden flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-linear-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center text-[11px] font-bold">
+            K4
+          </div>
+          <span className="text-[13px] font-bold text-gray-900">KKB4</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          aria-label="Toggle language"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-[12.5px] font-semibold text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
+        >
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
+          </svg>
           <span>{language === "en" ? "اردو" : "EN"}</span>
         </button>
       </div>
