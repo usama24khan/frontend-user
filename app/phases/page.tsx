@@ -6,34 +6,60 @@ import api from "../../utils/api";
 import ProgressBar from "../../components/ui/ProgressBar";
 import Spinner from "../../components/ui/Spinner";
 
+import { YEARS_WITH_DATA } from "../../constants/phases";
+
 const formatPKR = (n: number) => {
   return "₨ " + Math.round(n).toLocaleString("en-PK");
 };
 
 // Rich gradients and color styling for each phase
-const PHASE_THEMES: Record<number, {
+const PHASE_THEMES: Record<string, {
   text: string;
   badgeBg: string;
   progressBarColor: string;
   glow: string;
 }> = {
-  1: {
+  'Phase 1': {
     text: "text-emerald-800",
     badgeBg: "from-emerald-800 to-green-600",
     progressBarColor: "#166534",
     glow: "rgba(22,101,52,0.05)",
   },
-  2: {
+  'Phase 2': {
     text: "text-blue-800",
     badgeBg: "from-blue-800 to-indigo-600",
     progressBarColor: "#1e40af",
     glow: "rgba(30,64,175,0.05)",
   },
-  3: {
+  'Phase 3': {
     text: "text-amber-800",
     badgeBg: "from-amber-800 to-orange-600",
     progressBarColor: "#92400e",
     glow: "rgba(146,64,14,0.05)",
+  },
+  'Phase 4': {
+    text: "text-purple-800",
+    badgeBg: "from-purple-800 to-violet-600",
+    progressBarColor: "#6b21a8",
+    glow: "rgba(107,33,168,0.05)",
+  },
+  'Phase 5': {
+    text: "text-rose-800",
+    badgeBg: "from-rose-800 to-pink-600",
+    progressBarColor: "#9f1239",
+    glow: "rgba(159,18,57,0.05)",
+  },
+  'Phase 6': {
+    text: "text-teal-800",
+    badgeBg: "from-teal-800 to-cyan-600",
+    progressBarColor: "#115e59",
+    glow: "rgba(17,94,89,0.05)",
+  },
+  'Phase P': {
+    text: "text-sky-800",
+    badgeBg: "from-sky-800 to-blue-600",
+    progressBarColor: "#075985",
+    glow: "rgba(7,89,133,0.05)",
   },
 };
 
@@ -83,7 +109,7 @@ export default function PhasesPage() {
             onChange={(e) => setYear(parseInt(e.target.value))}
             className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold text-sm"
           >
-            {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+            {[...YEARS_WITH_DATA].reverse().map((y) => (
               <option key={y} value={y} className="text-gray-900 font-semibold">
                 {y}
               </option>
@@ -100,7 +126,7 @@ export default function PhasesPage() {
       ) : (
         <div className="flex flex-col gap-6">
           {phases.map((phase) => {
-            const theme = PHASE_THEMES[phase.phase] || PHASE_THEMES[1];
+            const theme = PHASE_THEMES[phase.phase] || PHASE_THEMES['Phase 1'];
             return (
               <div
                 key={phase.phase}
@@ -119,12 +145,12 @@ export default function PhasesPage() {
                   <div className="flex items-center gap-4">
                     {/* Glowing Phase Badge */}
                     <div
-                      className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${theme.badgeBg} text-white flex items-center justify-center font-extrabold text-lg shadow-md shrink-0`}
+                      className={`w-20 h-14 rounded-2xl bg-gradient-to-tr ${theme.badgeBg} text-white flex items-center justify-center font-extrabold text-sm shadow-md shrink-0 px-2`}
                     >
-                      P{phase.phase}
+                      {phase.phase}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">Phase {phase.phase} Overview</h3>
+                      <h3 className="text-xl font-bold text-gray-900">{phase.phase} Overview</h3>
                       <p className="text-xs text-gray-400 font-semibold mt-0.5">
                         Blocks registered:{" "}
                         <span className="text-gray-600">

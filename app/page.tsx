@@ -15,6 +15,14 @@ import api from "../utils/api";
 import StatCard from "../components/ui/StatCard";
 import ProgressBar from "../components/ui/ProgressBar";
 import Spinner from "../components/ui/Spinner";
+import {
+  ALL_BLOCKS,
+  ALL_PHASES,
+  PHASE_BLOCK_MAP,
+  BLOCK_PHASE_MAP,
+  YEARS_WITH_DATA,
+  formatPKR,
+} from "../constants/phases";
 
 const MONTHS = [
   { key: "jan", label: "Jan" },
@@ -31,17 +39,32 @@ const MONTHS = [
   { key: "dec", label: "Dec" },
 ];
 
-const BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+const BLOCKS = ALL_BLOCKS;
 
-const formatPKR = (n: number) => {
-  return "₨ " + Math.round(n).toLocaleString("en-PK");
-};
+/**
+ * Get default month range based on year selection.
+ * - Current year: Jan → current month
+ * - Previous years: Jan → Dec
+ * - Overall: hidden
+ */
+function getDefaultMonthRange(yearVal: string) {
+  if (yearVal === "overall") return { from: "jan", to: "dec" };
+  const y = parseInt(yearVal);
+  const now = new Date();
+  if (y === now.getFullYear()) {
+    const currentMonthIdx = now.getMonth(); // 0-based
+    return { from: "jan", to: MONTHS[currentMonthIdx].key };
+  }
+  return { from: "jan", to: "dec" };
+}
 
 export default function UserOverviewPage() {
-  const [year, setYear] = useState(2026);
-  const [monthFrom, setMonthFrom] = useState("jan");
-  const [monthTo, setMonthTo] = useState("dec");
-  const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState<string>(String(currentYear));
+  const defaultRange = getDefaultMonthRange(String(currentYear));
+  const [monthFrom, setMonthFrom] = useState(defaultRange.from);
+  const [monthTo, setMonthTo] = useState(defaultRange.to);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
 
   const [data, setData] = useState<any>(null);
@@ -58,6 +81,8 @@ export default function UserOverviewPage() {
   const [pinNumber, setPinNumber] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
 
+  const isOverall = year === "overall";
+
   // Initialize pinned plot
   useEffect(() => {
     const saved = localStorage.getItem("kkb4_pinned_plot_id");
@@ -65,6 +90,13 @@ export default function UserOverviewPage() {
       setPinnedPlotId(saved);
     }
   }, []);
+
+  // Update month range when year changes
+  useEffect(() => {
+    const range = getDefaultMonthRange(year);
+    setMonthFrom(range.from);
+    setMonthTo(range.to);
+  }, [year]);
 
   // Fetch pinned plot's details
   useEffect(() => {
@@ -97,11 +129,14 @@ export default function UserOverviewPage() {
       setLoading(true);
       setError(null);
       try {
-        let url = `/analytics/overview?year=${year}&monthFrom=${monthFrom}&monthTo=${monthTo}`;
+        let url = `/analytics/overview?year=${year}`;
+        if (!isOverall) {
+          url += `&monthFrom=${monthFrom}&monthTo=${monthTo}`;
+        }
         if (selectedBlock) {
           url += `&block=${selectedBlock}`;
         } else if (selectedPhase) {
-          url += `&phase=${selectedPhase}`;
+          url += `&phase=${encodeURIComponent(selectedPhase)}`;
         }
 
         const res: any = await api.get(url);
@@ -120,10 +155,10 @@ export default function UserOverviewPage() {
     return () => {
       active = false;
     };
-  }, [year, monthFrom, monthTo, selectedPhase, selectedBlock]);
+  }, [year, monthFrom, monthTo, selectedPhase, selectedBlock, isOverall]);
 
   // Filters Reset & Toggles
-  const handlePhaseChange = (phase: number | null) => {
+  const handlePhaseChange = (phase: string | null) => {
     setSelectedBlock(null);
     setSelectedPhase(phase);
   };
@@ -172,6 +207,8 @@ export default function UserOverviewPage() {
     setPinnedPlotData(null);
   };
 
+  const displayYear = isOverall ? "All Years" : year;
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
       {/* Sleek Gradient Header */}
@@ -196,13 +233,16 @@ export default function UserOverviewPage() {
             </span>
             <select
               value={year}
-              onChange={(e) => setYear(parseInt(e.target.value))}
+              onChange={(e) => setYear(e.target.value)}
               className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold select-none"
             >
-              {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+              <option value="overall" className="text-gray-900 font-semibold">
+                Overall
+              </option>
+              {[...YEARS_WITH_DATA].reverse().map((y) => (
                 <option
                   key={y}
-                  value={y}
+                  value={String(y)}
                   className="text-gray-900 font-semibold"
                 >
                   {y}
@@ -211,54 +251,57 @@ export default function UserOverviewPage() {
             </select>
           </div>
 
-          <div className="w-[1px] h-5 bg-white/20" />
-
-          {/* Month Range Selectors */}
-          <div className="flex items-center gap-2 px-1 text-sm font-semibold">
-            <span className="text-emerald-200 uppercase tracking-wider text-[10px]">
-              From
-            </span>
-            <select
-              value={monthFrom}
-              onChange={(e) => setMonthFrom(e.target.value)}
-              className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold"
-            >
-              {MONTHS.map((m) => (
-                <option
-                  key={m.key}
-                  value={m.key}
-                  className="text-gray-900 font-semibold"
+          {/* Month Range — hidden when Overall */}
+          {!isOverall && (
+            <>
+              <div className="w-[1px] h-5 bg-white/20" />
+              <div className="flex items-center gap-2 px-1 text-sm font-semibold">
+                <span className="text-emerald-200 uppercase tracking-wider text-[10px]">
+                  From
+                </span>
+                <select
+                  value={monthFrom}
+                  onChange={(e) => setMonthFrom(e.target.value)}
+                  className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold"
                 >
-                  {m.label}
-                </option>
-              ))}
-            </select>
+                  {MONTHS.map((m) => (
+                    <option
+                      key={m.key}
+                      value={m.key}
+                      className="text-gray-900 font-semibold"
+                    >
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
 
-            <span className="text-emerald-200 uppercase tracking-wider text-[10px]">
-              To
-            </span>
-            <select
-              value={monthTo}
-              onChange={(e) => setMonthTo(e.target.value)}
-              className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold"
-            >
-              {MONTHS.map((m) => (
-                <option
-                  key={m.key}
-                  value={m.key}
-                  className="text-gray-900 font-semibold"
+                <span className="text-emerald-200 uppercase tracking-wider text-[10px]">
+                  To
+                </span>
+                <select
+                  value={monthTo}
+                  onChange={(e) => setMonthTo(e.target.value)}
+                  className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold"
                 >
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
+                  {MONTHS.map((m) => (
+                    <option
+                      key={m.key}
+                      value={m.key}
+                      className="text-gray-900 font-semibold"
+                    >
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Main Grid: owner card + quick filters */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pinned Plot card with custom glassmorphism / styling */}
+        {/* Pinned Plot card */}
         <div className="lg:col-span-2 card p-5 relative overflow-hidden flex flex-col justify-between">
           {pinnedPlotId ? (
             loadingPinned || !pinnedPlotData ? (
@@ -271,12 +314,17 @@ export default function UserOverviewPage() {
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping shrink-0" />
-                      Pinned Plot: {pinnedPlotData.plotBlock}
+                      Pinned Plot:{" "}
+                      {pinnedPlotData.plotCode || pinnedPlotData.plotBlock}
                     </h3>
                     <p className="text-xs text-gray-500 font-medium mt-0.5">
                       Registered Owner:{" "}
                       <span className="font-bold text-gray-800">
                         {pinnedPlotData.ownerName}
+                      </span>
+                      {" · "}
+                      <span className="text-emerald-700">
+                        {pinnedPlotData.phase}
                       </span>
                     </p>
                   </div>
@@ -299,82 +347,85 @@ export default function UserOverviewPage() {
                   </div>
                 </div>
 
-                {/* Plot's Payment Grid with modern circles */}
-                <div className="space-y-3.5">
-                  {(() => {
-                    const payRecord = pinnedPlotData.payments?.find(
-                      (p: any) => p.year === year,
-                    );
-                    const received = payRecord?.totalReceived || 0;
-                    const expected = payRecord?.totalDue || 4800;
-                    const remaining = Math.max(0, expected - received);
-                    const paidCount = MONTHS.filter(
-                      (m) => payRecord?.payments?.[m.key] > 0,
-                    ).length;
+                {/* Plot's Payment Grid */}
+                {!isOverall && (
+                  <div className="space-y-3.5">
+                    {(() => {
+                      const numYear = parseInt(year);
+                      const payRecord = pinnedPlotData.payments?.find(
+                        (p: any) => p.year === numYear,
+                      );
+                      const received = payRecord?.totalReceived || 0;
+                      const expected = payRecord?.totalDue || 4800;
+                      const remaining = Math.max(0, expected - received);
+                      const paidCount = MONTHS.filter(
+                        (m) => payRecord?.payments?.[m.key] > 0,
+                      ).length;
 
-                    return (
-                      <>
-                        <div className="flex justify-between items-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          <span>Monthly Payment Calendar — {year}</span>
-                          <span className="text-emerald-800 font-bold">
-                            Rate:{" "}
-                            {payRecord ? formatPKR(payRecord.mcRate) : "₨ 400"}
-                            /month
-                          </span>
-                        </div>
-
-                        {/* Grid */}
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1.5">
-                          {MONTHS.map((m) => {
-                            const val = payRecord?.payments?.[m.key];
-                            const isPaid =
-                              val !== null && val !== undefined && val > 0;
-
-                            return (
-                              <div
-                                key={m.key}
-                                className={`month-box ${isPaid ? "paid" : "unpaid"}`}
-                              >
-                                <span className="uppercase text-[9px] opacity-75 font-bold tracking-wider">
-                                  {m.key}
-                                </span>
-                                <span className="font-bold text-xs mt-1">
-                                  {isPaid ? formatPKR(val) : "Pending"}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Totals Summary */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 border border-gray-100 p-3.5 rounded-2xl gap-3 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-gray-500">
-                              Registry Progress:
-                            </span>
-                            <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                              {paidCount} / 12 Months Paid
+                      return (
+                        <>
+                          <div className="flex justify-between items-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            <span>Monthly Payment Calendar — {year}</span>
+                            <span className="text-emerald-800 font-bold">
+                              Rate:{" "}
+                              {payRecord
+                                ? formatPKR(payRecord.mcRate)
+                                : "₨ 400"}
+                              /month
                             </span>
                           </div>
-                          <div className="flex gap-4">
-                            <span className="font-medium text-gray-600">
-                              Received:{" "}
-                              <span className="font-bold text-emerald-800">
-                                {formatPKR(received)}
-                              </span>
-                            </span>
-                            <span className="font-medium text-gray-600">
-                              Remaining:{" "}
-                              <span className="font-bold text-rose-700">
-                                {formatPKR(remaining)}
-                              </span>
-                            </span>
+
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1.5">
+                            {MONTHS.map((m) => {
+                              const val = payRecord?.payments?.[m.key];
+                              const isPaid =
+                                val !== null && val !== undefined && val > 0;
+
+                              return (
+                                <div
+                                  key={m.key}
+                                  className={`month-box ${isPaid ? "paid" : "unpaid"}`}
+                                >
+                                  <span className="uppercase text-[9px] opacity-75 font-bold tracking-wider">
+                                    {m.key}
+                                  </span>
+                                  <span className="font-bold text-xs mt-1">
+                                    {isPaid ? formatPKR(val) : "Pending"}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 border border-gray-100 p-3.5 rounded-2xl gap-3 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-gray-500">
+                                Registry Progress:
+                              </span>
+                              <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                {paidCount} / 12 Months Paid
+                              </span>
+                            </div>
+                            <div className="flex gap-4">
+                              <span className="font-medium text-gray-600">
+                                Received:{" "}
+                                <span className="font-bold text-emerald-800">
+                                  {formatPKR(received)}
+                                </span>
+                              </span>
+                              <span className="font-medium text-gray-600">
+                                Remaining:{" "}
+                                <span className="font-bold text-rose-700">
+                                  {formatPKR(remaining)}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             )
           ) : (
@@ -450,7 +501,7 @@ export default function UserOverviewPage() {
                 >
                   All Phases
                 </button>
-                {[1, 2, 3].map((ph) => (
+                {ALL_PHASES.map((ph) => (
                   <button
                     key={ph}
                     onClick={() => handlePhaseChange(ph)}
@@ -458,7 +509,7 @@ export default function UserOverviewPage() {
                       selectedPhase === ph ? "btn-primary" : "btn-outline"
                     }`}
                   >
-                    Phase {ph}
+                    {ph}
                   </button>
                 ))}
               </div>
@@ -480,7 +531,7 @@ export default function UserOverviewPage() {
                         : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                     }`}
                   >
-                    Block {b}
+                    {b}
                   </button>
                 ))}
               </div>
@@ -580,74 +631,86 @@ export default function UserOverviewPage() {
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Recharts expected vs actual */}
-            <div className="lg:col-span-2 card p-5 flex flex-col justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-50 pb-2 mb-4">
-                Expected Dues vs Actual Received
-              </h3>
-              <div className="w-full h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.perMonthBreakdown} barCategoryGap="25%">
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#f1f5f9"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 11, fill: "#64748b" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(m) => m.toUpperCase()}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "#64748b" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v) => `${(v / 1_000).toFixed(0)}K`}
-                    />
-                    <Tooltip
-                      formatter={(v: any) => [formatPKR(v), ""]}
-                      contentStyle={{
-                        background: "#fff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 12,
-                        fontSize: 12,
-                      }}
-                    />
-                    <Legend
-                      verticalAlign="top"
-                      height={36}
-                      wrapperStyle={{ fontSize: 12 }}
-                    />
-                    <Bar
-                      dataKey="due"
-                      fill="#e2e8f0"
-                      radius={[4, 4, 0, 0]}
-                      name="Expected Due"
-                    />
-                    <Bar
-                      dataKey="received"
-                      fill="#166534"
-                      radius={[4, 4, 0, 0]}
-                      name="Actual Received"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+            {/* Recharts expected vs actual — only show for specific year */}
+            {!isOverall && data.perMonthBreakdown?.length > 0 && (
+              <div className="lg:col-span-2 card p-5 flex flex-col justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-50 pb-2 mb-4">
+                  Expected Dues vs Actual Received — {displayYear}
+                </h3>
+                <div className="w-full h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={data.perMonthBreakdown}
+                      barCategoryGap="25%"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f1f5f9"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(m) => m.toUpperCase()}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => `${(v / 1_000).toFixed(0)}K`}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => [formatPKR(v), ""]}
+                        contentStyle={{
+                          background: "#fff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 12,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        height={36}
+                        wrapperStyle={{ fontSize: 12 }}
+                      />
+                      <Bar
+                        dataKey="due"
+                        fill="#e2e8f0"
+                        radius={[4, 4, 0, 0]}
+                        name="Expected Due"
+                      />
+                      <Bar
+                        dataKey="received"
+                        fill="#166534"
+                        radius={[4, 4, 0, 0]}
+                        name="Actual Received"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Block Progressbars Card */}
-            <div className="card p-5 flex flex-col">
+            {/* Block Progress bars Card */}
+            <div
+              className={`card p-5 flex flex-col ${isOverall ? "lg:col-span-3" : ""}`}
+            >
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-50 pb-2 mb-4">
-                Block Collection Rates
+                Block Collection Rates — {displayYear}
               </h3>
-              <div className="space-y-4.5 flex-1 overflow-y-auto max-h-[300px] pr-1.5">
+              <div
+                className={`space-y-4.5 flex-1 overflow-y-auto pr-1.5 ${isOverall ? "max-h-[400px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "max-h-[300px]"}`}
+              >
                 {data.perBlockBreakdown.map((row: any) => (
                   <div key={row.block} className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs font-bold text-gray-700">
                       <span>
-                        Block {row.block} (Phase {row.phase})
+                        Block {row.block}{" "}
+                        <span className="text-gray-400 font-medium">
+                          ({row.phase})
+                        </span>
                       </span>
                       <span className="text-emerald-800 font-extrabold">
                         {row.collectionRate}%
@@ -658,6 +721,12 @@ export default function UserOverviewPage() {
                       height={5}
                       showLabel={false}
                     />
+                    <div className="flex justify-between text-[10px] text-gray-400">
+                      <span>{row.totalPlots} plots</span>
+                      <span>
+                        {row.paidCount} paid · {row.defaulterCount} defaulters
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

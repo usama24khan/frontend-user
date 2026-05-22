@@ -6,6 +6,7 @@ import api from "../../../utils/api";
 import Card from "../../../components/ui/Card";
 import ProgressBar from "../../../components/ui/ProgressBar";
 import Spinner from "../../../components/ui/Spinner";
+import { YEARS_WITH_DATA } from "../../../constants/phases";
 
 const formatPKR = (n: number) => {
   return "₨ " + Math.round(n).toLocaleString("en-PK");
@@ -119,7 +120,7 @@ export default function PlotDetailPage() {
               onChange={(e) => setYear(parseInt(e.target.value))}
               className="select text-xs font-semibold"
             >
-              {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+              {[...YEARS_WITH_DATA].reverse().map((y) => (
                 <option key={y} value={y}>
                   Year: {y}
                 </option>

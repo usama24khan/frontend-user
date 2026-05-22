@@ -7,6 +7,8 @@ import Card from "../../components/ui/Card";
 import ProgressBar from "../../components/ui/ProgressBar";
 import Spinner from "../../components/ui/Spinner";
 
+import { YEARS_WITH_DATA, getMcRateForYear } from "../../constants/phases";
+
 const formatPKR = (n: number) => {
   return "₨ " + Math.round(n).toLocaleString("en-PK");
 };
@@ -41,6 +43,7 @@ export default function LeaderboardPage() {
           if (active && res.success) {
             const zeroPayment = res.data.zeroPayment || [];
             const noRecord = res.data.noRecord || [];
+            const rate = getMcRateForYear(year);
             const combined = [
               ...zeroPayment.map((p: any) => ({
                 plot: p.plot,
@@ -48,7 +51,7 @@ export default function LeaderboardPage() {
               })),
               ...noRecord.map((plot: any) => ({
                 plot,
-                totalDue: 200 * 12,
+                totalDue: rate * 12,
               })),
             ];
             setDefaulters(combined);
@@ -94,7 +97,7 @@ export default function LeaderboardPage() {
             onChange={(e) => setYear(parseInt(e.target.value))}
             className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold text-sm"
           >
-            {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+            {[...YEARS_WITH_DATA].reverse().map((y) => (
               <option key={y} value={y} className="text-gray-900 font-semibold">
                 {y}
               </option>

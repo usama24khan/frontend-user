@@ -5,7 +5,7 @@ import Link from "next/link";
 import api from "../../utils/api";
 import ProgressBar from "../../components/ui/ProgressBar";
 import Spinner from "../../components/ui/Spinner";
-import { BLOCK_PHASE_MAP } from "../../constants/phases";
+import { BLOCK_PHASE_MAP, YEARS_WITH_DATA } from "../../constants/phases";
 
 const formatPKR = (n: number) => {
   return "₨ " + Math.round(n).toLocaleString("en-PK");
@@ -60,7 +60,7 @@ export default function BlocksPage() {
             onChange={(e) => setYear(parseInt(e.target.value))}
             className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold text-sm"
           >
-            {[2021, 2022, 2023, 2024, 2025, 2026].map((y) => (
+            {[...YEARS_WITH_DATA].reverse().map((y) => (
               <option key={y} value={y} className="text-gray-900 font-semibold">
                 {y}
               </option>

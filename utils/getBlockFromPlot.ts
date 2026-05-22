@@ -6,8 +6,8 @@ export function getBlockFromPlot(plotBlock: string): string {
   return match ? match[1].toUpperCase() : 'UNKNOWN';
 }
 
-export function getPhaseFromBlock(block: string): number {
-  return BLOCK_PHASE_MAP[block.toUpperCase()] ?? 0;
+export function getPhaseFromBlock(block: string): string {
+  return BLOCK_PHASE_MAP[block.toUpperCase()] ?? '';
 }
 
 export function getPlotNumber(plotBlock: string): string {
