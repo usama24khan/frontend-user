@@ -2,35 +2,468 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import api from "../../../utils/api";
-import Card from "../../../components/ui/Card";
-import ProgressBar from "../../../components/ui/ProgressBar";
+import { useTranslation } from "react-i18next";
+import { getPlotById } from "../../../services";
 import Spinner from "../../../components/ui/Spinner";
 import { YEARS_WITH_DATA } from "../../../constants/phases";
 
-const formatPKR = (n: number) => {
-  return "₨ " + Math.round(n).toLocaleString("en-PK");
-};
+const formatPKR = (n: number) => "₨ " + Math.round(n).toLocaleString("en-PK");
 
-const MONTHS = [
-  { key: "jan", label: "Jan" },
-  { key: "feb", label: "Feb" },
-  { key: "mar", label: "Mar" },
-  { key: "apr", label: "Apr" },
-  { key: "may", label: "May" },
-  { key: "jun", label: "Jun" },
-  { key: "jul", label: "Jul" },
-  { key: "aug", label: "Aug" },
-  { key: "sep", label: "Sep" },
-  { key: "oct", label: "Oct" },
-  { key: "nov", label: "Nov" },
-  { key: "dec", label: "Dec" },
-];
+const MONTH_KEYS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --surface-3: #f1f5f9;
+    --border: rgba(0,0,0,0.07);
+    --border-mid: rgba(0,0,0,0.13);
+    --accent: #059669;
+    --accent-dim: rgba(5,150,105,0.08);
+    --accent-mid: rgba(5,150,105,0.16);
+    --red: #e11d48;
+    --red-dim: rgba(225,29,72,0.07);
+    --amber: #d97706;
+    --amber-dim: rgba(217,119,6,0.08);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --shadow-sm: 0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04);
+    --shadow-md: 0 4px 12px rgba(15,23,42,0.07), 0 1px 4px rgba(15,23,42,0.04);
+    --radius-lg: 16px;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-xs: 6px;
+  }
+
+  .pd-root * { box-sizing: border-box; }
+
+  .pd-root {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  [dir="rtl"] .pd-root { font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', sans-serif; }
+
+  /* ── Hero Header ── */
+  .pd-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .pd-header-info { flex: 1; min-width: 0; }
+  .pd-badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .pd-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 99px;
+    border: 1px solid;
+  }
+  .pill-plot {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent-mid);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pill-info {
+    background: var(--surface-3);
+    color: var(--text-secondary);
+    border-color: var(--border-mid);
+  }
+  .pill-active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent-mid);
+  }
+  .pill-red {
+    background: var(--red-dim);
+    color: var(--red);
+    border-color: rgba(225,29,72,0.2);
+  }
+  .pd-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+  }
+  .pd-sub {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-weight: 500;
+    max-width: 480px;
+  }
+
+  /* Lifetime card */
+  .lifetime-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border-mid);
+    border-radius: 10px;
+    padding: 10px 16px;
+    flex-shrink: 0;
+    min-width: 180px;
+  }
+  .lifetime-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+  }
+  .lifetime-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+
+  /* ── Control Bar ── */
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .year-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--border-mid);
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+  .year-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .year-select {
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+  }
+  .year-select option { background: #fff; color: #0f172a; }
+
+  .toggle-btn {
+    background: #fff;
+    border: 1px solid var(--border-mid);
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 7px 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s;
+    font-family: inherit;
+  }
+  .toggle-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+  .toggle-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* ── Detail Card ── */
+  .detail-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    margin-bottom: 14px;
+  }
+  .detail-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .card-title-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .rate-pill {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid var(--accent-mid);
+  }
+
+  /* Month grid */
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) { .month-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 380px) { .month-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .month-cell {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.12s;
+  }
+  .month-cell.paid {
+    background: rgba(5,150,105,0.07);
+    border-color: var(--accent-mid);
+  }
+  .month-cell.partial {
+    background: var(--amber-dim);
+    border-color: rgba(217,119,6,0.18);
+  }
+  .month-key {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+  .month-cell.paid .month-key { color: var(--accent); }
+  .month-cell.partial .month-key { color: var(--amber); }
+  .month-val {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .month-cell.paid .month-val { color: var(--accent); }
+  .month-cell.partial .month-val { color: var(--amber); }
+
+  /* Financials grid */
+  .fin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  @media (max-width: 600px) { .fin-grid { grid-template-columns: 1fr; } }
+  .fin-cell {
+    background: var(--surface-2);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .fin-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .fin-value {
+    font-size: 14.5px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.2px;
+  }
+  .fin-value.green { color: var(--accent); }
+  .fin-value.red { color: var(--red); }
+  .fin-value.dark { color: var(--text-primary); }
+
+  /* Progress */
+  .progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .progress-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .progress-section-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .progress-section-pct {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .progress-track {
+    width: 100%;
+    height: 5px;
+    background: var(--surface-3);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.6s ease;
+  }
+
+  /* ── History Table ── */
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .history-card-head {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .history-title {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .history-table th {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    padding: 10px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-table th.right { text-align: right; }
+  .history-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .history-table tbody tr:last-child { border-bottom: none; }
+  .history-table tbody tr:hover { background: var(--surface-2); }
+  .history-table td {
+    padding: 11px 18px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .history-table td.right { text-align: right; }
+  .history-table td.year-cell {
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+  .history-table td.green { color: var(--accent); font-weight: 700; }
+  .history-table td.red { color: var(--red); font-weight: 700; }
+
+  .pct-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.03em;
+  }
+  .pct-green { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-mid); }
+  .pct-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(217,119,6,0.2); }
+  .pct-red   { background: var(--red-dim); color: var(--red); border: 1px solid rgba(225,29,72,0.2); }
+
+  /* Empty / Not found */
+  .empty-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 60px 24px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .empty-icon { font-size: 34px; margin-bottom: 14px; }
+  .empty-text { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+
+  .center-spinner { display: flex; justify-content: center; align-items: center; min-height: 280px; }
+
+  .fade-in { animation: fadeUp 0.3s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    .pd-root { padding: 16px; }
+    .pd-header { padding: 18px 20px; }
+    .pd-title { font-size: 21px; }
+    .lifetime-card { min-width: 0; width: 100%; }
+    .detail-card { padding: 18px; }
+  }
+`;
 
 export default function PlotDetailPage() {
+  const { t } = useTranslation();
   const { plotId } = useParams();
+  const currentYear = new Date().getFullYear();
   const [plot, setPlot] = useState<any>(null);
-  const [year, setYear] = useState(2026);
+  const [year, setYear] = useState(currentYear);
   const [allYears, setAllYears] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -39,247 +472,216 @@ export default function PlotDetailPage() {
     const fetchPlot = async () => {
       setLoading(true);
       try {
-        const res: any = await api.get(`/plots/${plotId}`);
-        if (active && res.success) {
-          setPlot(res.data);
-        }
+        const data = await getPlotById(plotId as string);
+        if (active) setPlot(data);
       } catch (err) {
         console.error("Failed to fetch plot detail:", err);
       } finally {
         if (active) setLoading(false);
       }
     };
-    if (plotId) {
-      fetchPlot();
-    }
-    return () => {
-      active = false;
-    };
+    if (plotId) fetchPlot();
+    return () => { active = false; };
   }, [plotId]);
 
-  if (loading) return <Spinner />;
+  if (loading) {
+    return (
+      <>
+        <style>{styles}</style>
+        <div className="pd-root">
+          <div className="center-spinner"><Spinner /></div>
+        </div>
+      </>
+    );
+  }
+
   if (!plot) {
     return (
-      <div className="p-12 text-center text-gray-500 font-semibold">
-        Plot record not found.
-      </div>
+      <>
+        <style>{styles}</style>
+        <div className="pd-root">
+          <div className="empty-card">
+            <div className="empty-icon">🏚️</div>
+            <p className="empty-text">{t("plot.notFound")}</p>
+          </div>
+        </div>
+      </>
     );
   }
 
   const payments = plot.payments || [];
   const sel = payments.find((p: any) => p.year === year);
   const totPaid = payments.reduce((s: number, p: any) => s + (p.totalReceived || 0), 0);
+  const isActive = plot.allotmentStatus === "Active";
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
-      {/* Premium Header Card */}
-      <div className="bg-linear-to-r from-emerald-600 to-emerald-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
-        <div className="space-y-1 relative z-10">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="bg-white/20 text-white font-extrabold px-3 py-1 rounded-xl text-xs uppercase tracking-wider">
-              {plot.plotBlock}
-            </span>
-            <span className="bg-emerald-900/40 text-emerald-100 font-semibold px-3 py-1 rounded-xl text-xs uppercase tracking-wider">
-              Block {plot.block} — Phase {plot.phase}
-            </span>
-            <span
-              className={`badge py-1 px-3 text-[9px] font-bold ${
-                plot.allotmentStatus === "Active"
-                  ? "badge-green"
-                  : "badge-red"
-              }`}
-            >
-              {plot.allotmentStatus}
-            </span>
+    <>
+      <style>{styles}</style>
+      <div className="pd-root fade-in">
+
+        {/* ── Header ── */}
+        <div className="pd-header">
+          <div className="pd-header-info">
+            <div className="pd-badges">
+              <span className="pd-pill pill-plot">{plot.plotBlock}</span>
+              <span className="pd-pill pill-info">
+                {t("plot.block")} {plot.block} · {t("plot.phase")} {plot.phase}
+              </span>
+              <span className={`pd-pill ${isActive ? "pill-active" : "pill-red"}`}>
+                {plot.allotmentStatus}
+              </span>
+            </div>
+            <h1 className="pd-title">{plot.ownerName}</h1>
+            <p className="pd-sub">{t("plot.fileSubtitle")}</p>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-2">{plot.ownerName}</h1>
-          <p className="text-emerald-100 text-sm max-w-xl font-medium mt-1">
-            Society Property Registry File detail and collection log.
-          </p>
+
+          <div className="lifetime-card">
+            <div className="lifetime-label">{t("plot.lifetimePaid")}</div>
+            <div className="lifetime-value">{formatPKR(totPaid)}</div>
+          </div>
         </div>
 
-        {/* Lifetime Paid counter */}
-        <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 relative z-10 shrink-0 self-start md:self-auto">
-          <span className="text-emerald-200 uppercase tracking-wider text-[9px] font-bold block mb-1">
-            Lifetime Paid
-          </span>
-          <span className="text-xl font-extrabold text-white block">
-            {formatPKR(totPaid)}
-          </span>
-        </div>
-      </div>
-
-      {/* Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Left Side: Selectors */}
-        <div className="flex items-center gap-3">
+        {/* ── Controls ── */}
+        <div className="controls-bar">
           {!allYears && (
-            <select
-              value={year}
-              onChange={(e) => setYear(parseInt(e.target.value))}
-              className="select text-xs font-semibold"
-            >
-              {[...YEARS_WITH_DATA].reverse().map((y) => (
-                <option key={y} value={y}>
-                  Year: {y}
-                </option>
-              ))}
-            </select>
+            <div className="year-selector">
+              <span className="year-label">{t("common.year")}</span>
+              <select
+                value={year}
+                onChange={(e) => setYear(parseInt(e.target.value))}
+                className="year-select"
+              >
+                {[...YEARS_WITH_DATA].reverse().map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           )}
 
           <button
             onClick={() => setAllYears(!allYears)}
-            className={`btn text-xs font-semibold ${
-              allYears ? "btn-primary" : "btn-outline"
-            }`}
+            className={`toggle-btn ${allYears ? "active" : ""}`}
           >
-            {allYears ? "✓ Showing All History" : "View Full History"}
+            {allYears ? `✓ ${t("common.showingAllHistory")}` : t("common.viewFullHistory")}
           </button>
         </div>
-      </div>
 
-      {/* Details Container */}
-      {!allYears ? (
-        sel ? (
-          <div className="card p-6 flex flex-col gap-6">
-            <div className="flex justify-between items-center border-b border-gray-50 pb-3">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Monthly Payment Calendar — {year}
-              </span>
-              <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-xl">
-                Rate: {formatPKR(sel.mcRate)}/month
-              </span>
-            </div>
-
-            {/* Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {MONTHS.map((m) => {
-                const val = sel.payments?.[m.key] || 0;
-                const isPaid = val > 0;
-                const isFull = val >= sel.mcRate;
-
-                return (
-                  <div
-                    key={m.key}
-                    className={`month-box transition-all ${
-                      isFull ? "paid" : isPaid ? "partial" : "unpaid"
-                    }`}
-                  >
-                    <span className="uppercase text-[9px] opacity-75 font-bold tracking-wider">{m.label}</span>
-                    <span className="font-extrabold text-xs mt-1">
-                      {isPaid ? formatPKR(val) : "Pending"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Financial indicators */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                {
-                  label: "Expected Due",
-                  val: formatPKR(sel.totalDue),
-                  color: "text-gray-900",
-                  bg: "bg-gray-50/50 border-gray-100",
-                },
-                {
-                  label: "Total Collected",
-                  val: formatPKR(sel.totalReceived),
-                  color: "text-emerald-800",
-                  bg: "bg-emerald-50/50 border-emerald-100",
-                },
-                {
-                  label: "Outstanding Overdue",
-                  val: formatPKR(sel.remaining),
-                  color: "text-rose-800",
-                  bg: "bg-rose-50/50 border-rose-100",
-                },
-              ].map((m) => (
-                <div
-                  key={m.label}
-                  className={`p-4 rounded-2xl border ${m.bg} flex flex-col justify-between h-[80px]`}
-                >
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                    {m.label}
-                  </span>
-                  <span className={`text-base font-extrabold ${m.color} mt-1`}>{m.val}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Progress status */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] font-bold text-gray-400">
-                <span>Annual Payment Progress</span>
-                <span className="text-emerald-800">
-                  {Math.round((sel.totalReceived / sel.totalDue) * 100)}% Complete
+        {/* ── Single Year ── */}
+        {!allYears && (
+          sel ? (
+            <div className="detail-card">
+              <div className="detail-card-head">
+                <span className="card-title-label">
+                  {t("plot.monthlyPaymentCalendar")} — {year}
+                </span>
+                <span className="rate-pill">
+                  {t("plot.rate")}: {formatPKR(sel.mcRate)}{t("dashboard.perMonth")}
                 </span>
               </div>
-              <ProgressBar value={sel.totalReceived} max={sel.totalDue} height={6} />
+
+              <div className="month-grid">
+                {MONTH_KEYS.map((mk) => {
+                  const val = sel.payments?.[mk] || 0;
+                  const isPaid = val > 0;
+                  const isFull = val >= sel.mcRate;
+                  return (
+                    <div
+                      key={mk}
+                      className={`month-cell ${isFull ? "paid" : isPaid ? "partial" : ""}`}
+                    >
+                      <span className="month-key">{t(`months.short.${mk}`)}</span>
+                      <span className="month-val">
+                        {isPaid ? formatPKR(val) : t("plot.pending")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="fin-grid">
+                <div className="fin-cell">
+                  <span className="fin-label">{t("plot.expectedDue")}</span>
+                  <span className="fin-value dark">{formatPKR(sel.totalDue)}</span>
+                </div>
+                <div className="fin-cell">
+                  <span className="fin-label">{t("plot.totalCollected")}</span>
+                  <span className="fin-value green">{formatPKR(sel.totalReceived)}</span>
+                </div>
+                <div className="fin-cell">
+                  <span className="fin-label">{t("plot.outstandingOverdue")}</span>
+                  <span className="fin-value red">{formatPKR(sel.remaining)}</span>
+                </div>
+              </div>
+
+              <div className="progress-section">
+                <div className="progress-section-head">
+                  <span className="progress-section-label">{t("plot.annualPaymentProgress")}</span>
+                  <span className="progress-section-pct">
+                    {sel.totalDue > 0 ? Math.round((sel.totalReceived / sel.totalDue) * 100) : 0}% {t("plot.complete")}
+                  </span>
+                </div>
+                <div className="progress-track">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${sel.totalDue > 0 ? Math.min(100, (sel.totalReceived / sel.totalDue) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="empty-card">
+              <div className="empty-icon">📋</div>
+              <p className="empty-text">{t("plot.noPaymentRecord", { year })}</p>
+            </div>
+          )
+        )}
+
+        {/* ── All Years ── */}
+        {allYears && (
+          <div className="history-card">
+            <div className="history-card-head">
+              <span className="history-title">{t("plot.annualDuesHistory")}</span>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>{t("common.year")}</th>
+                    <th>{t("plot.monthlyRate")}</th>
+                    <th>{t("plot.totalDue")}</th>
+                    <th>{t("plot.totalReceived")}</th>
+                    <th>{t("plot.outstanding")}</th>
+                    <th className="right">{t("plot.statusPct")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((p: any) => {
+                    const pct = p.totalDue > 0 ? Math.round((p.totalReceived / p.totalDue) * 100) : 0;
+                    const pctCls = pct >= 90 ? "pct-green" : pct >= 50 ? "pct-amber" : "pct-red";
+                    return (
+                      <tr
+                        key={p.year}
+                        onClick={() => { setYear(p.year); setAllYears(false); }}
+                      >
+                        <td className="year-cell">{p.year}</td>
+                        <td>{formatPKR(p.mcRate)}</td>
+                        <td>{formatPKR(p.totalDue)}</td>
+                        <td className="green">{formatPKR(p.totalReceived)}</td>
+                        <td className="red">{formatPKR(p.remaining)}</td>
+                        <td className="right">
+                          <span className={`pct-badge ${pctCls}`}>{pct}% {t("plot.paidLabel")}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-        ) : (
-          <div className="card p-12 text-center text-gray-500 font-semibold">
-            No payment record found for the reporting period {year}.
-          </div>
-        )
-      ) : (
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div className="p-5 border-b border-gray-50">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-              Annual Dues History
-            </h3>
-          </div>
-
-          <table className="data-table">
-            <thead>
-              <tr>
-                {["Year", "Monthly Rate", "Total Due", "Total Received", "Outstanding", "Status %"].map(
-                  (h) => (
-                    <th key={h}>{h}</th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p: any) => {
-                const pct = p.totalDue > 0 ? Math.round((p.totalReceived / p.totalDue) * 100) : 0;
-                return (
-                  <tr
-                    key={p.year}
-                    onClick={() => {
-                      setYear(p.year);
-                      setAllYears(false);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <td className="font-extrabold text-gray-800">{p.year}</td>
-                    <td className="text-gray-500 font-semibold">{formatPKR(p.mcRate)}</td>
-                    <td className="text-gray-500 font-semibold">{formatPKR(p.totalDue)}</td>
-                    <td className="font-bold text-emerald-800">{formatPKR(p.totalReceived)}</td>
-                    <td className="font-bold text-rose-800">{formatPKR(p.remaining)}</td>
-                    <td>
-                      <span
-                        className={`badge text-[9px] font-bold ${
-                          pct >= 90
-                            ? "badge-green"
-                            : pct >= 50
-                            ? "badge-amber"
-                            : "badge-red"
-                        }`}
-                      >
-                        {pct}% Paid
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Card>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

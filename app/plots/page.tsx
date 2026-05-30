@@ -2,16 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import api from "../../utils/api";
+import { useTranslation } from "react-i18next";
+import { getPlots } from "../../services";
 import Spinner from "../../components/ui/Spinner";
 import {
   ALL_BLOCKS,
   ALL_PHASES,
   BLOCK_PHASE_MAP,
-  PHASE_BLOCK_MAP,
-  YEARS_WITH_DATA,
-  formatPKR,
-  getMcRateForYear,
 } from "../../constants/phases";
 
 interface PlotData {
@@ -58,70 +55,60 @@ const styles = `
     background: var(--bg);
     color: var(--text-primary);
     min-height: 100vh;
-    padding: 28px;
+    padding: 20px;
     max-width: 1400px;
     margin: 0 auto;
   }
+  [dir="rtl"] .plots-root { font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', sans-serif; }
 
   /* ── Page Header ── */
   .page-header {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 24px 28px;
+    border-radius: 12px;
+    padding: 18px 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
+    gap: 16px;
     flex-wrap: wrap;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    position: relative;
-    overflow: hidden;
-  }
-  .page-header::before {
-    content: '';
-    position: absolute;
-    top: -50px; left: -50px;
-    width: 220px; height: 220px;
-    background: radial-gradient(circle, rgba(5,150,105,0.07) 0%, transparent 70%);
-    pointer-events: none;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   }
   .header-eyebrow {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 4px;
   }
   .eyebrow-dot {
-    width: 7px; height: 7px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 6px rgba(5,150,105,0.4);
   }
   .eyebrow-text {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent);
   }
   .page-title {
-    font-size: 24px;
-    font-weight: 800;
+    font-size: 19px;
+    font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.4px;
-    line-height: 1.1;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
   }
   .page-sub {
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--text-secondary);
     margin-top: 4px;
     font-weight: 500;
   }
   .page-sub strong {
     color: var(--accent);
-    font-weight: 800;
+    font-weight: 700;
     font-family: 'JetBrains Mono', monospace;
   }
 
@@ -132,39 +119,39 @@ const styles = `
   }
   .search-icon {
     position: absolute;
-    left: 12px;
+    left: 11px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
     pointer-events: none;
   }
   .search-input {
-    background: var(--surface-2);
+    background: #fff;
     border: 1px solid var(--border-bright);
-    border-radius: 10px;
-    padding: 9px 14px 9px 36px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 13px;
+    border-radius: 8px;
+    padding: 8px 12px 8px 32px;
+    font-family: inherit;
+    font-size: 12.5px;
     font-weight: 500;
     color: var(--text-primary);
-    width: 260px;
+    width: 240px;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .search-input::placeholder { color: var(--text-muted); }
   .search-input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
+    box-shadow: 0 0 0 3px rgba(5,150,105,0.12);
   }
 
   /* ── Filter Card ── */
   .filter-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 22px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   }
   .filter-row {
     display: flex;
@@ -226,55 +213,55 @@ const styles = `
   .block-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    margin-bottom: 16px;
-    transition: box-shadow 0.2s;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    margin-bottom: 12px;
+    transition: box-shadow 0.15s;
   }
-  .block-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.07); }
+  .block-card:hover { box-shadow: 0 2px 8px rgba(15,23,42,0.06); }
 
   .block-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: 12px 18px;
     background: var(--surface-2);
     border-bottom: 1px solid var(--border);
   }
   .block-letter-badge {
-    width: 36px; height: 36px;
+    width: 30px; height: 30px;
     background: var(--accent-dim);
     border: 1px solid var(--accent-mid);
-    border-radius: 10px;
+    border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 12.5px;
+    font-weight: 700;
     color: var(--accent);
     flex-shrink: 0;
     font-family: 'JetBrains Mono', monospace;
   }
-  .block-header-info { margin-left: 12px; }
+  .block-header-info { margin-left: 10px; }
   .block-header-name {
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--text-primary);
   }
   .block-header-meta {
-    font-size: 11px;
+    font-size: 10.5px;
     color: var(--text-muted);
     font-weight: 500;
     margin-top: 1px;
   }
   .block-header-left { display: flex; align-items: center; }
   .block-view-link {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10.5px;
+    font-weight: 600;
     color: var(--accent);
     text-decoration: none;
-    padding: 5px 12px;
+    padding: 4px 10px;
     border: 1px solid var(--accent-mid);
-    border-radius: 7px;
+    border-radius: 6px;
     background: var(--accent-dim);
     transition: all 0.15s;
   }
@@ -290,11 +277,11 @@ const styles = `
   }
   .plot-table th {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     color: var(--text-muted);
-    padding: 10px 20px;
+    padding: 10px 18px;
     text-align: left;
     border-bottom: 1px solid var(--border);
   }
@@ -309,15 +296,15 @@ const styles = `
   .plot-table tbody tr:hover { background: var(--surface-2); }
 
   .plot-table td {
-    padding: 11px 20px;
-    font-size: 13px;
+    padding: 10px 18px;
+    font-size: 12.5px;
     color: var(--text-secondary);
   }
   .td-plot-code {
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text-primary);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-size: 11.5px;
   }
   .td-owner {
     font-weight: 600;
@@ -448,8 +435,7 @@ const styles = `
 
 /* ─── Page Component ─── */
 export default function PlotsPage() {
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState<string>(String(currentYear));
+  const { t } = useTranslation();
   const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -466,16 +452,18 @@ export default function PlotsPage() {
     setLoading(true);
     setError(null);
     try {
-      let url = `/plots?page=${page}&limit=${limit}&sortBy=block&sortOrder=asc`;
-      if (selectedBlock) url += `&block=${selectedBlock}`;
-      else if (selectedPhase) url += `&phase=${encodeURIComponent(selectedPhase)}`;
-      if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
-      const res: any = await api.get(url);
-      if (res.success) {
-        setPlots(res.data);
-        setTotal(res.meta?.total || 0);
-        setTotalPages(res.meta?.totalPages || 1);
-      }
+      const result = await getPlots({
+        page,
+        limit,
+        sortBy: 'block',
+        sortOrder: 'asc',
+        block: selectedBlock,
+        phase: selectedPhase,
+        search,
+      });
+      setPlots(result.data);
+      setTotal(result.meta?.total || 0);
+      setTotalPages(result.meta?.totalPages || 1);
     } catch {
       setError("Failed to load plots.");
     } finally {
@@ -512,12 +500,12 @@ export default function PlotsPage() {
           <div style={{ position: "relative", zIndex: 1 }}>
             <div className="header-eyebrow">
               <div className="eyebrow-dot" />
-              <span className="eyebrow-text">Property Registry</span>
+              <span className="eyebrow-text">{t("plots.eyebrow")}</span>
             </div>
-            <h1 className="page-title">Plot Registry</h1>
+            <h1 className="page-title">{t("plots.title")}</h1>
             <p className="page-sub">
-              Browse and search all registered plots across blocks and phases.{" "}
-              <strong>{total}</strong> plots found.
+              {t("plots.subtitle")}{" "}
+              <strong>{total}</strong> {t("plots.plotsCount", { count: total }).replace(/^\d+\s*/, "")}
             </p>
           </div>
 
@@ -530,7 +518,7 @@ export default function PlotsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or plot…"
+              placeholder={t("plots.searchPlaceholder")}
               className="search-input"
             />
           </div>
@@ -540,12 +528,12 @@ export default function PlotsPage() {
         <div className="filter-card">
           {/* Phases */}
           <div className="filter-row">
-            <span className="filter-row-label">Phase</span>
+            <span className="filter-row-label">{t("plots.phase")}</span>
             <button
               onClick={() => handlePhaseChange(null)}
               className={`phase-btn ${!selectedPhase && !selectedBlock ? "active" : ""}`}
             >
-              All
+              {t("common.all")}
             </button>
             {ALL_PHASES.map((ph) => (
               <button
@@ -562,7 +550,7 @@ export default function PlotsPage() {
 
           {/* Blocks */}
           <div className="filter-row">
-            <span className="filter-row-label">Block</span>
+            <span className="filter-row-label">{t("plots.block")}</span>
             {ALL_BLOCKS.map((b) => (
               <button
                 key={b}
@@ -583,7 +571,7 @@ export default function PlotsPage() {
         ) : plots.length === 0 ? (
           <div className="empty-state fade-in">
             <div className="empty-icon">🔍</div>
-            <p className="empty-text">No plots found for "{activeLabel}".</p>
+            <p className="empty-text">{t("plots.noPlotsFound", { label: activeLabel })}</p>
           </div>
         ) : (
           <div className="fade-in">
@@ -594,14 +582,14 @@ export default function PlotsPage() {
                   <div className="block-header-left">
                     <div className="block-letter-badge">{block}</div>
                     <div className="block-header-info">
-                      <div className="block-header-name">Block {block}</div>
+                      <div className="block-header-name">{t("plot.block")} {block}</div>
                       <div className="block-header-meta">
-                        {BLOCK_PHASE_MAP[block]} · {blockPlots.length} plots
+                        {BLOCK_PHASE_MAP[block]} · {t("plots.plotsCount", { count: blockPlots.length })}
                       </div>
                     </div>
                   </div>
                   <Link href={`/blocks/${block}`} className="block-view-link">
-                    View Block →
+                    {t("plots.viewBlock")} →
                   </Link>
                 </div>
 
@@ -609,10 +597,10 @@ export default function PlotsPage() {
                 <table className="plot-table">
                   <thead>
                     <tr>
-                      <th>Plot #</th>
-                      <th>Owner Name</th>
-                      <th className="center">Status</th>
-                      <th className="right">Phase</th>
+                      <th>{t("plots.th.plotNo")}</th>
+                      <th>{t("plots.th.owner")}</th>
+                      <th className="center">{t("plots.th.status")}</th>
+                      <th className="right">{t("plots.th.phase")}</th>
                       <th className="right" />
                     </tr>
                   </thead>
@@ -635,7 +623,7 @@ export default function PlotsPage() {
                         <td className="td-right td-phase">{p.phase}</td>
                         <td className="td-right">
                           <Link href={`/plots/${p._id}`} className="details-link">
-                            Details →
+                            {t("plots.details")} →
                           </Link>
                         </td>
                       </tr>
@@ -653,7 +641,7 @@ export default function PlotsPage() {
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
                 >
-                  ← Prev
+                  ← {t("common.prev")}
                 </button>
                 <span className="page-info">{page} / {totalPages}</span>
                 <button
@@ -661,7 +649,7 @@ export default function PlotsPage() {
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                 >
-                  Next →
+                  {t("common.next")} →
                 </button>
               </div>
             )}

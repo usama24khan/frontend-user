@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import api from "../../utils/api";
-import ProgressBar from "../../components/ui/ProgressBar";
+import { useTranslation } from "react-i18next";
+import { getAllBlocks } from "../../services";
 import Spinner from "../../components/ui/Spinner";
 import { BLOCK_PHASE_MAP, YEARS_WITH_DATA } from "../../constants/phases";
 
@@ -43,111 +43,83 @@ const styles = `
     background: var(--bg);
     color: var(--text-primary);
     min-height: 100vh;
-    padding: 28px;
+    padding: 20px;
     max-width: 1400px;
     margin: 0 auto;
   }
+  [dir="rtl"] .blocks-root { font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', sans-serif; }
 
   /* ── Page Header ── */
   .page-header {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 24px 28px;
+    border-radius: 12px;
+    padding: 18px 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
+    gap: 16px;
     flex-wrap: wrap;
-    margin-bottom: 24px;
-    box-shadow: var(--shadow-sm);
-    position: relative;
-    overflow: hidden;
-  }
-  .page-header::before {
-    content: '';
-    position: absolute;
-    top: -50px; left: -50px;
-    width: 220px; height: 220px;
-    background: radial-gradient(circle, rgba(5,150,105,0.07) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .page-header::after {
-    content: '';
-    position: absolute;
-    bottom: -40px; right: 80px;
-    width: 180px; height: 180px;
-    background: radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%);
-    pointer-events: none;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   }
   .header-eyebrow {
     display: flex;
     align-items: center;
-    gap: 7px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 4px;
   }
   .eyebrow-dot {
-    width: 7px; height: 7px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 6px rgba(5,150,105,0.4);
-    animation: pulseDot 2s ease infinite;
-  }
-  @keyframes pulseDot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.5; transform: scale(0.75); }
   }
   .eyebrow-text {
     font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent);
   }
   .page-title {
-    font-size: 24px;
-    font-weight: 800;
+    font-size: 19px;
+    font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.4px;
-    line-height: 1.1;
-    position: relative;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
   }
   .page-sub {
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--text-secondary);
     margin-top: 4px;
     font-weight: 500;
     max-width: 420px;
-    position: relative;
   }
 
   /* ── Year Selector ── */
   .year-selector {
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: var(--surface-2);
+    gap: 8px;
+    background: #fff;
     border: 1px solid var(--border-mid);
-    border-radius: var(--radius);
-    padding: 8px 14px;
-    position: relative;
-    z-index: 1;
+    border-radius: 8px;
+    padding: 6px 12px;
     flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .year-label {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 9.5px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     color: var(--text-muted);
   }
   .year-select {
     background: transparent;
     border: none;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 800;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
     color: var(--text-primary);
     cursor: pointer;
     outline: none;
@@ -159,7 +131,7 @@ const styles = `
   .blocks-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    gap: 12px;
   }
   @media (max-width: 1024px) { .blocks-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 600px)  { .blocks-grid { grid-template-columns: 1fr; } }
@@ -168,35 +140,32 @@ const styles = `
   .block-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
     display: flex;
     flex-direction: column;
-    gap: 0;
     overflow: hidden;
-    transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
     text-decoration: none;
     color: inherit;
-    position: relative;
   }
   .block-card:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 2px 8px rgba(15,23,42,0.06);
     border-color: var(--border-mid);
-    transform: translateY(-2px);
   }
 
   /* top accent stripe */
   .block-card-stripe {
-    height: 3px;
-    background: linear-gradient(90deg, #34d399, var(--accent));
+    height: 2px;
+    background: var(--accent);
     flex-shrink: 0;
   }
 
   .block-card-body {
-    padding: 20px 22px;
+    padding: 16px 18px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 14px;
     flex: 1;
   }
 
@@ -204,39 +173,38 @@ const styles = `
   .block-identity {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
   }
   .block-avatar {
-    width: 46px; height: 46px;
-    border-radius: 13px;
+    width: 38px; height: 38px;
+    border-radius: 10px;
     background: var(--accent-dim);
     border: 1px solid var(--accent-mid);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 17px;
-    font-weight: 800;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--accent);
     font-family: 'JetBrains Mono', monospace;
     flex-shrink: 0;
   }
   .block-name {
-    font-size: 16px;
-    font-weight: 800;
+    font-size: 14.5px;
+    font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.2px;
+    letter-spacing: -0.1px;
     line-height: 1.2;
   }
   .phase-badge {
     display: inline-flex;
     align-items: center;
-    margin-top: 4px;
+    margin-top: 3px;
     font-size: 10px;
-    font-weight: 700;
-    padding: 2px 9px;
+    font-weight: 600;
+    padding: 2px 8px;
     border-radius: 99px;
     background: var(--accent-dim);
-    border: 1px solid var(--accent-mid);
     color: var(--accent);
     letter-spacing: 0.04em;
   }
@@ -245,32 +213,32 @@ const styles = `
   .metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2px;
+    gap: 1px;
     background: var(--border);
-    border-radius: var(--radius);
+    border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--border);
   }
   .metric-cell {
     background: var(--surface-2);
-    padding: 11px 13px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
   }
   .metric-cell:hover { background: var(--surface-3); }
   .metric-label {
     font-size: 9.5px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.1em;
     color: var(--text-muted);
   }
   .metric-value {
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 12.5px;
+    font-weight: 700;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.2px;
     line-height: 1.2;
   }
   .metric-value.green { color: var(--accent); }
@@ -282,7 +250,7 @@ const styles = `
   .block-progress-row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
   }
   .block-progress-header {
     display: flex;
@@ -290,21 +258,21 @@ const styles = `
     align-items: center;
   }
   .progress-label {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 9.5px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     color: var(--text-muted);
   }
   .progress-pct {
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 11.5px;
+    font-weight: 700;
     font-family: 'JetBrains Mono', monospace;
     color: var(--accent);
   }
   .progress-track {
     width: 100%;
-    height: 5px;
+    height: 4px;
     background: var(--surface-3);
     border-radius: 99px;
     overflow: hidden;
@@ -312,11 +280,11 @@ const styles = `
   .progress-fill {
     height: 100%;
     border-radius: 99px;
-    background: linear-gradient(90deg, #34d399, var(--accent));
-    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--accent);
+    transition: width 0.6s ease;
   }
-  .progress-fill.warning { background: linear-gradient(90deg, #fcd34d, #d97706); }
-  .progress-fill.danger  { background: linear-gradient(90deg, #fb7185, var(--red)); }
+  .progress-fill.warning { background: var(--amber, #d97706); }
+  .progress-fill.danger  { background: var(--red); }
 
   /* ── States ── */
   .center-spinner { display: flex; justify-content: center; align-items: center; min-height: 260px; }
@@ -347,6 +315,7 @@ function getProgressVariant(rate: number) {
 
 /* ─── Page ─── */
 export default function BlocksPage() {
+  const { t } = useTranslation();
   const [year, setYear] = useState(new Date().getFullYear());
   const [blocks, setBlocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -356,9 +325,9 @@ export default function BlocksPage() {
     const fetchBlocks = async () => {
       setLoading(true);
       try {
-        const res: any = await api.get(`/blocks?year=${year}`);
-        if (active && res.success) {
-          setBlocks([...res.data].sort((a: any, b: any) => a.block.localeCompare(b.block)));
+        const data = await getAllBlocks(year);
+        if (active) {
+          setBlocks([...data].sort((a: any, b: any) => a.block.localeCompare(b.block)));
         }
       } catch (err) {
         console.error("Failed to fetch blocks:", err);
@@ -377,19 +346,17 @@ export default function BlocksPage() {
 
         {/* ── Header ── */}
         <div className="page-header">
-          <div style={{ position: "relative", zIndex: 1 }}>
+          <div>
             <div className="header-eyebrow">
               <div className="eyebrow-dot" />
-              <span className="eyebrow-text">Block Directory</span>
+              <span className="eyebrow-text">{t("blocks.eyebrow")}</span>
             </div>
-            <h1 className="page-title">Blocks Overview</h1>
-            <p className="page-sub">
-              Browse recovery metrics, property counts, and collection rates across all blocks.
-            </p>
+            <h1 className="page-title">{t("blocks.title")}</h1>
+            <p className="page-sub">{t("blocks.subtitle")}</p>
           </div>
 
           <div className="year-selector">
-            <span className="year-label">Year</span>
+            <span className="year-label">{t("common.year")}</span>
             <select
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
@@ -412,43 +379,39 @@ export default function BlocksPage() {
               const phase = BLOCK_PHASE_MAP[b.block] || "?";
               return (
                 <Link key={b.block} href={`/blocks/${b.block}`} className="block-card fade-in">
-                  {/* Accent stripe */}
                   <div className="block-card-stripe" />
 
                   <div className="block-card-body">
-                    {/* Identity */}
                     <div className="block-identity">
                       <div className="block-avatar">{b.block}</div>
                       <div>
-                        <div className="block-name">Block {b.block}</div>
+                        <div className="block-name">{t("plot.block")} {b.block}</div>
                         <span className="phase-badge">{phase}</span>
                       </div>
                     </div>
 
-                    {/* Metrics */}
                     <div className="metrics-grid">
                       <div className="metric-cell">
-                        <span className="metric-label">Collected</span>
+                        <span className="metric-label">{t("blocks.collected")}</span>
                         <span className="metric-value green">{formatPKR(b.totalCollected)}</span>
                       </div>
                       <div className="metric-cell">
-                        <span className="metric-label">Remaining</span>
+                        <span className="metric-label">{t("blocks.remaining")}</span>
                         <span className="metric-value red">{formatPKR(b.remaining)}</span>
                       </div>
                       <div className="metric-cell">
-                        <span className="metric-label">Total Plots</span>
+                        <span className="metric-label">{t("blocks.totalPlots")}</span>
                         <span className="metric-value dark">{b.totalPlots}</span>
                       </div>
                       <div className="metric-cell">
-                        <span className="metric-label">Collection Rate</span>
+                        <span className="metric-label">{t("blocks.collectionRate")}</span>
                         <span className="metric-value rate">{b.collectionRate}%</span>
                       </div>
                     </div>
 
-                    {/* Progress */}
                     <div className="block-progress-row">
                       <div className="block-progress-header">
-                        <span className="progress-label">Collection Progress</span>
+                        <span className="progress-label">{t("blocks.collectionProgress")}</span>
                         <span className="progress-pct">{b.collectionRate}%</span>
                       </div>
                       <div className="progress-track">

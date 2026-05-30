@@ -3,21 +3,311 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Card from "../../../components/ui/Card";
-import StatCard from "../../../components/ui/StatCard";
-import ProgressBar from "../../../components/ui/ProgressBar";
+import { useTranslation } from "react-i18next";
 import Spinner from "../../../components/ui/Spinner";
-import api from "../../../utils/api";
+import { getBlockDetail } from "../../../services";
 import { BLOCK_PHASE_MAP, YEARS_WITH_DATA } from "../../../constants/phases";
 
-const formatPKR = (n: number) => {
-  return "₨ " + Math.round(n).toLocaleString("en-PK");
-};
+const formatPKR = (n: number) => "₨ " + Math.round(n).toLocaleString("en-PK");
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --surface-3: #f1f5f9;
+    --border: rgba(0,0,0,0.07);
+    --border-mid: rgba(0,0,0,0.13);
+    --accent: #059669;
+    --accent-dim: rgba(5,150,105,0.08);
+    --accent-mid: rgba(5,150,105,0.16);
+    --red: #e11d48;
+    --red-dim: rgba(225,29,72,0.07);
+    --amber: #d97706;
+    --blue: #2563eb;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+  }
+
+  .bd-root * { box-sizing: border-box; }
+  .bd-root {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  [dir="rtl"] .bd-root { font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', sans-serif; }
+
+  /* Header */
+  .bd-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .bd-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .bd-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 99px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .bd-pill-accent {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent-mid);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .bd-pill-muted {
+    background: var(--surface-3);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-mid);
+  }
+  .bd-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+  }
+  .bd-sub {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-weight: 500;
+    max-width: 480px;
+  }
+
+  /* Year selector */
+  .year-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--border-mid);
+    border-radius: 8px;
+    padding: 6px 12px;
+    flex-shrink: 0;
+  }
+  .year-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .year-select {
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+  }
+  .year-select option { background: #fff; color: #0f172a; }
+
+  /* KPIs */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+  .kpi-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 6px;
+    letter-spacing: -0.3px;
+  }
+  .kpi-value.green { color: var(--accent); }
+  .kpi-value.red { color: var(--red); }
+  .kpi-value.blue { color: var(--blue); }
+  .kpi-value.amber { color: var(--amber); }
+  .kpi-delta {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* List card */
+  .list-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .list-head {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .list-head-title {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .list-body {
+    max-height: 540px;
+    overflow-y: auto;
+  }
+  .list-body::-webkit-scrollbar { width: 4px; }
+  .list-body::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 4px; }
+
+  .list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.12s;
+  }
+  .list-row:last-child { border-bottom: none; }
+  .list-row:hover { background: var(--surface-2); }
+  .list-row-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+  }
+  .list-row-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .row-avatar {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-mid);
+    color: var(--accent);
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .row-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+  .row-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .status-pill {
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .pill-active { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-mid); }
+  .pill-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(225,29,72,0.18); }
+
+  .progress-mini {
+    width: 96px;
+    height: 4px;
+    background: var(--surface-3);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  @media (max-width: 640px) { .progress-mini { display: none; } }
+  .progress-mini-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.6s ease;
+  }
+
+  .empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .center-spinner { display: flex; justify-content: center; align-items: center; min-height: 240px; }
+
+  .fade-in { animation: fadeUp 0.3s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    .bd-root { padding: 14px; }
+    .bd-header { padding: 16px 18px; }
+    .bd-title { font-size: 17px; }
+  }
+`;
 
 export default function BlockDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const block = (params.block as string)?.toUpperCase();
-  const [year, setYear] = useState(2026);
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
   const [plots, setPlots] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -27,10 +317,10 @@ export default function BlockDetailPage() {
     const fetchBlockDetails = async () => {
       setLoading(true);
       try {
-        const res: any = await api.get(`/blocks/${block}?year=${year}`);
-        if (active && res.success) {
-          setPlots(res.data.plots || []);
-          setStats(res.data.stats || null);
+        const data = await getBlockDetail(block, year);
+        if (active) {
+          setPlots(data.plots || []);
+          setStats(data.stats || null);
         }
       } catch (err) {
         console.error("Failed to fetch block details:", err);
@@ -38,164 +328,113 @@ export default function BlockDetailPage() {
         if (active) setLoading(false);
       }
     };
-    if (block) {
-      fetchBlockDetails();
-    }
-    return () => {
-      active = false;
-    };
+    if (block) fetchBlockDetails();
+    return () => { active = false; };
   }, [block, year]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
-      {/* Premium Header */}
-      <div className="bg-linear-to-r from-emerald-600 to-emerald-700 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6 ">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
-        <div className="space-y-1 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="bg-white/20 text-white font-extrabold px-3 py-1 rounded-xl text-xs uppercase tracking-wider">
-              Block {block}
-            </span>
-            <span className="bg-emerald-900/40 text-emerald-100 font-semibold px-3 py-1 rounded-xl text-xs uppercase tracking-wider">
-              Phase {BLOCK_PHASE_MAP[block] || "?"}
-            </span>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-2">Block Details</h1>
-          <p className="text-emerald-100 text-sm max-w-xl font-medium mt-1">
-            Displaying collection records and registry allocations for {plots.length} properties in Block {block}.
-          </p>
-        </div>
+    <>
+      <style>{styles}</style>
+      <div className="bd-root fade-in">
 
-        {/* Custom Selector Panel */}
-        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 relative z-10 shrink-0">
-          <span className="text-emerald-200 uppercase tracking-wider text-[10px] font-bold">Reporting Year</span>
-          <select
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
-            className="bg-transparent border-none text-white focus:outline-none cursor-pointer font-bold text-sm"
-          >
-            {[...YEARS_WITH_DATA].reverse().map((y) => (
-              <option key={y} value={y} className="text-gray-900 font-semibold">
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Spinner />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* KPI Dashboard */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <StatCard
-              icon={
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                  <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-                  <path d="M9 21V12h6v9" />
-                </svg>
-              }
-              label="Total Plots"
-              value={(stats?.totalPlots || plots.length).toString()}
-              delta="Block properties"
-              color="blue"
-            />
-            <StatCard
-              icon={
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v2m0 6v2" />
-                </svg>
-              }
-              label="Collected"
-              value={formatPKR(stats?.totalCollected || 0)}
-              delta="Received dues"
-              color="green"
-            />
-            <StatCard
-              icon={
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                  <path d="M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-1" />
-                </svg>
-              }
-              label="Remaining"
-              value={formatPKR(stats?.remaining || 0)}
-              delta="Unpaid outstanding"
-              color="red"
-            />
-            <StatCard
-              icon={
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                  <path d="M21 21H3M3 21V3m4 10v8m4-12v12m4-6v6m4-14v14" strokeLinecap="round" />
-                </svg>
-              }
-              label="Collection Rate"
-              value={`${stats?.collectionRate || 0}%`}
-              delta="Progress"
-              color="amber"
-            />
-          </div>
-
-          {/* Table-based card list */}
-          <div className="card p-6 flex flex-col gap-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-50 pb-2.5">
-              Property Registers
-            </h3>
-
-            <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto pr-1">
-              {plots.map((plot) => {
-                const pct = plot.due > 0 ? Math.round((plot.paid / plot.due) * 100) : 0;
-                return (
-                  <Link key={plot._id} href={`/plots/${plot._id}`} className="block">
-                    <div className="flex items-center justify-between gap-4 py-3 px-2 rounded-2xl hover:bg-gray-50/70 transition-all duration-150">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold text-xs border border-emerald-100 shrink-0">
-                          {plot.plotBlock}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{plot.ownerName}</p>
-                          <p className="text-xs text-gray-400 font-semibold mt-0.5">
-                            Block {plot.block} — Plot {plot.plotNumber}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-6 shrink-0">
-                        <span
-                          className={`badge text-[9px] font-bold py-1 px-2.5 ${
-                            plot.allotmentStatus === "Active"
-                              ? "badge-green"
-                              : "badge-red"
-                          }`}
-                        >
-                          {plot.allotmentStatus}
-                        </span>
-
-                        <div className="w-24 hidden sm:block">
-                          <div className="flex justify-between text-[9px] font-bold text-gray-400 mb-1">
-                            <span>Paid</span>
-                            <span>{pct}%</span>
-                          </div>
-                          <ProgressBar value={pct} height={4} showLabel={false} />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-
-              {plots.length === 0 && (
-                <div className="text-center py-12 text-gray-400 font-medium">
-                  No properties found in Block {block} for the reporting period.
-                </div>
-              )}
+        {/* Header */}
+        <div className="bd-header">
+          <div>
+            <div className="bd-pills">
+              <span className="bd-pill bd-pill-accent">{t("plot.block")} {block}</span>
+              <span className="bd-pill bd-pill-muted">
+                {t("plot.phase")} {BLOCK_PHASE_MAP[block] || "?"}
+              </span>
             </div>
+            <h1 className="bd-title">{t("blocks.blockDetails")}</h1>
+            <p className="bd-sub">
+              {t("blocks.blockDetailsSubtitle", { count: plots.length, block })}
+            </p>
+          </div>
+
+          <div className="year-selector">
+            <span className="year-label">{t("common.year")}</span>
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="year-select"
+            >
+              {[...YEARS_WITH_DATA].reverse().map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
-    </div>
+
+        {loading ? (
+          <div className="center-spinner"><Spinner /></div>
+        ) : (
+          <>
+            {/* KPIs */}
+            <div className="kpi-grid">
+              <div className="kpi">
+                <div className="kpi-label">{t("blocks.totalPlots")}</div>
+                <div className="kpi-value blue">{stats?.totalPlots || plots.length}</div>
+                <div className="kpi-delta">{t("blocks.blockProperties")}</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-label">{t("blocks.collected")}</div>
+                <div className="kpi-value green">{formatPKR(stats?.totalCollected || 0)}</div>
+                <div className="kpi-delta">{t("blocks.receivedDues")}</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-label">{t("blocks.remaining")}</div>
+                <div className="kpi-value red">{formatPKR(stats?.remaining || 0)}</div>
+                <div className="kpi-delta">{t("blocks.unpaidOutstanding")}</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-label">{t("blocks.collectionRate")}</div>
+                <div className="kpi-value amber">{stats?.collectionRate || 0}%</div>
+                <div className="kpi-delta">{t("blocks.progress")}</div>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="list-card">
+              <div className="list-head">
+                <span className="list-head-title">{t("blocks.propertyRegisters")}</span>
+              </div>
+
+              <div className="list-body">
+                {plots.length === 0 ? (
+                  <div className="empty-state">{t("blocks.noProperties", { block })}</div>
+                ) : (
+                  plots.map((plot) => {
+                    const pct = plot.due > 0 ? Math.round((plot.paid / plot.due) * 100) : 0;
+                    const isActive = plot.allotmentStatus === "Active";
+                    return (
+                      <Link key={plot._id} href={`/plots/${plot._id}`} className="list-row">
+                        <div className="list-row-left">
+                          <div className="row-avatar">{plot.plotBlock}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="row-name">{plot.ownerName}</div>
+                            <div className="row-meta">
+                              {t("plot.block")} {plot.block} — {t("plot.plotNumber")} {plot.plotNumber}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="list-row-right">
+                          <span className={`status-pill ${isActive ? "pill-active" : "pill-red"}`}>
+                            {plot.allotmentStatus}
+                          </span>
+                          <div className="progress-mini">
+                            <div className="progress-mini-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }

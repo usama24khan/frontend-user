@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BarChart,
   Bar,
@@ -11,15 +12,11 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import api from "../utils/api";
-import StatCard from "../components/ui/StatCard";
-import ProgressBar from "../components/ui/ProgressBar";
+import { getOverview, getPlotById, searchPlots } from "../services";
 import Spinner from "../components/ui/Spinner";
 import {
   ALL_BLOCKS,
   ALL_PHASES,
-  PHASE_BLOCK_MAP,
-  BLOCK_PHASE_MAP,
   YEARS_WITH_DATA,
   formatPKR,
 } from "../constants/phases";
@@ -84,109 +81,80 @@ const styles = `
     background: var(--bg);
     color: var(--text-primary);
     min-height: 100vh;
-    padding: 28px;
+    padding: 20px;
     max-width: 1400px;
     margin: 0 auto;
   }
+  [dir="rtl"] .dash-root { font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', sans-serif; }
 
   /* ── Hero Header ── */
   .dash-header {
-    position: relative;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 28px 32px;
-    overflow: hidden;
+    border-radius: 12px;
+    padding: 18px 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 16px;
     flex-wrap: wrap;
-    margin-bottom: 24px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  }
-  .dash-header::before {
-    content: '';
-    position: absolute;
-    top: -60px; left: -60px;
-    width: 280px; height: 280px;
-    background: radial-gradient(circle, rgba(5,150,105,0.08) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .dash-header::after {
-    content: '';
-    position: absolute;
-    bottom: -40px; right: 120px;
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 70%);
-    pointer-events: none;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   }
   .header-eyebrow {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 6px;
+    margin-bottom: 4px;
   }
   .eyebrow-dot {
-    width: 8px; height: 8px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 8px var(--accent-glow);
-    animation: pulse-dot 2s infinite;
-  }
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(0.85); }
   }
   .eyebrow-text {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent);
   }
   .header-title {
-    font-size: 28px;
-    font-weight: 800;
+    font-size: 19px;
+    font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.5px;
-    line-height: 1.1;
-    position: relative;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
   }
   .header-sub {
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--text-secondary);
-    margin-top: 6px;
+    margin-top: 4px;
     max-width: 480px;
     line-height: 1.5;
-    position: relative;
   }
 
   /* ── Filter Pill Bar ── */
   .filter-bar {
     display: flex;
     align-items: center;
-    gap: 0;
     background: var(--surface-2);
-    border: 1px solid var(--border-bright);
-    border-radius: 12px;
-    padding: 6px;
-    position: relative;
-    z-index: 1;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
     flex-wrap: wrap;
-    gap: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    gap: 2px;
   }
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     padding: 4px 10px;
   }
   .filter-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
@@ -194,31 +162,31 @@ const styles = `
     background: transparent;
     border: none;
     color: var(--text-primary);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
     cursor: pointer;
     outline: none;
     padding: 2px 0;
   }
   .filter-select option { background: #ffffff; color: #0f172a; }
   .filter-divider {
-    width: 1px; height: 20px;
-    background: var(--border-bright);
+    width: 1px; height: 16px;
+    background: var(--border);
     flex-shrink: 0;
   }
 
   /* ── Main Grid ── */
   .dash-grid-2 {
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 20px;
-    margin-bottom: 20px;
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+    margin-bottom: 16px;
   }
   .dash-grid-3 {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
+    gap: 16px;
   }
   @media (max-width: 1024px) {
     .dash-grid-2 { grid-template-columns: 1fr; }
@@ -226,21 +194,23 @@ const styles = `
   }
   @media (max-width: 640px) {
     .dash-grid-3 { grid-template-columns: 1fr; }
-    .dash-root { padding: 16px; }
+    .dash-root { padding: 14px; }
+    .dash-header { padding: 16px 18px; }
+    .header-title { font-size: 17px; }
   }
 
   /* ── Cards ── */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
+    border-radius: 12px;
+    padding: 18px;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   }
-  .card:hover { border-color: var(--border-bright); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .card:hover { border-color: var(--border-bright); box-shadow: 0 2px 8px rgba(15,23,42,0.06); }
   .card-title {
     font-size: 11px;
     font-weight: 700;
@@ -263,8 +233,8 @@ const styles = `
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 16px;
   }
   @media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(2,1fr); } }
   @media (max-width: 480px) { .stat-grid { grid-template-columns: 1fr; } }
@@ -272,40 +242,39 @@ const styles = `
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 22px;
+    border-radius: 12px;
+    padding: 16px 18px;
     position: relative;
     overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   }
-  .stat-card:hover { transform: translateY(-2px); border-color: var(--border-bright); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
-  .stat-card-accent { position: absolute; top: 0; left: 0; width: 100%; height: 3px; border-radius: 3px 3px 0 0; }
+  .stat-card:hover { border-color: var(--border-bright); box-shadow: 0 2px 8px rgba(15,23,42,0.06); }
+  .stat-card-accent { display: none; }
   .stat-icon {
-    width: 36px; height: 36px;
-    border-radius: 10px;
+    width: 30px; height: 30px;
+    border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 14px;
-    font-size: 16px;
+    margin-bottom: 10px;
   }
   .stat-value {
-    font-size: 22px;
-    font-weight: 800;
+    font-size: 19px;
+    font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
     font-family: 'JetBrains Mono', monospace;
   }
   .stat-label {
-    font-size: 12px;
+    font-size: 11.5px;
     color: var(--text-secondary);
     margin-top: 2px;
     font-weight: 500;
   }
   .stat-delta {
-    font-size: 11px;
+    font-size: 10.5px;
     color: var(--text-muted);
-    margin-top: 8px;
-    font-weight: 600;
+    margin-top: 6px;
+    font-weight: 500;
   }
 
   /* ── Pinned Plot Card ── */
@@ -313,38 +282,37 @@ const styles = `
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 18px;
-    gap: 12px;
+    margin-bottom: 14px;
+    gap: 10px;
   }
   .pin-badge-live {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(16,185,129,0.12);
-    border: 1px solid rgba(16,185,129,0.25);
+    gap: 5px;
+    background: rgba(5,150,105,0.08);
+    border: 1px solid rgba(5,150,105,0.18);
     color: var(--accent);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 3px 10px;
+    padding: 3px 9px;
     border-radius: 99px;
   }
   .pin-badge-live span {
-    width: 5px; height: 5px;
+    width: 4px; height: 4px;
     background: var(--accent);
     border-radius: 50%;
     display: inline-block;
-    animation: pulse-dot 1.5s infinite;
   }
   .pin-title {
-    font-size: 18px;
-    font-weight: 800;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.3px;
+    letter-spacing: -0.2px;
   }
   .pin-meta {
-    font-size: 12px;
+    font-size: 11.5px;
     color: var(--text-secondary);
     margin-top: 3px;
     font-weight: 500;
@@ -448,54 +416,53 @@ const styles = `
     .pin-empty { flex-direction: row; align-items: center; justify-content: space-between; }
   }
   .pin-empty-icon {
-    width: 44px; height: 44px;
+    width: 36px; height: 36px;
     background: var(--accent-dim);
-    border: 1px solid rgba(16,185,129,0.2);
-    border-radius: 12px;
+    border: 1px solid rgba(5,150,105,0.18);
+    border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
+    font-size: 16px;
     margin-bottom: 8px;
   }
   .pin-empty h3 {
-    font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px;
+    font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px;
   }
   .pin-empty p {
-    font-size: 13px; color: var(--text-secondary); max-width: 320px; line-height: 1.5; margin: 0;
+    font-size: 12.5px; color: var(--text-secondary); max-width: 320px; line-height: 1.5; margin: 0;
   }
   .pin-form { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-  .pin-form-row { display: flex; gap: 8px; }
+  .pin-form-row { display: flex; gap: 6px; flex-wrap: wrap; }
   .form-select, .form-input {
-    background: var(--surface-2);
+    background: #fff;
     border: 1px solid var(--border-bright);
     color: var(--text-primary);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 9px 12px;
-    border-radius: var(--radius-xs);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 8px 11px;
+    border-radius: 8px;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .form-select:focus, .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(5,150,105,0.1); }
-  .form-input { width: 160px; }
+  .form-select:focus, .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(5,150,105,0.12); }
+  .form-input { width: 140px; }
   .form-input::placeholder { color: var(--text-muted); font-weight: 400; }
   .form-select option { background: #ffffff; color: #0f172a; }
   .btn-primary {
     background: var(--accent);
-    color: #0b0f19;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 9px 18px;
-    border-radius: var(--radius-xs);
+    color: #fff;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 8px;
     border: none;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
+    transition: background 0.15s;
     white-space: nowrap;
   }
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-primary:active { transform: none; opacity: 1; }
-  .pin-error { font-size: 11px; color: var(--red); font-weight: 700; }
+  .btn-primary:hover { background: #047857; }
+  .pin-error { font-size: 11px; color: var(--red); font-weight: 600; }
 
   /* ── Filters Card ── */
   .filter-section-label {
@@ -546,9 +513,9 @@ const styles = `
   /* ── Charts ── */
   .chart-row {
     display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 20px;
-    margin-bottom: 20px;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    margin-bottom: 16px;
   }
   .chart-row.full { grid-template-columns: 1fr; }
   @media (max-width: 960px) { .chart-row { grid-template-columns: 1fr; } }
@@ -703,6 +670,7 @@ function CustomTooltip({ active, payload, label }: any) {
 
 /* ─── Main Page ─── */
 export default function UserOverviewPage() {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<string>(String(currentYear));
   const defaultRange = getDefaultMonthRange(String(currentYear));
@@ -741,8 +709,8 @@ export default function UserOverviewPage() {
     const fetchPinnedPlot = async () => {
       setLoadingPinned(true);
       try {
-        const res: any = await api.get(`/plots/${pinnedPlotId}`);
-        if (res.success) setPinnedPlotData(res.data);
+        const data = await getPlotById(pinnedPlotId);
+        setPinnedPlotData(data);
       } catch { console.error("Failed to fetch pinned plot"); }
       finally { setLoadingPinned(false); }
     };
@@ -755,18 +723,20 @@ export default function UserOverviewPage() {
       setLoading(true);
       setError(null);
       try {
-        let url = `/analytics/overview?year=${year}`;
-        if (!isOverall) url += `&monthFrom=${monthFrom}&monthTo=${monthTo}`;
-        if (selectedBlock) url += `&block=${selectedBlock}`;
-        else if (selectedPhase) url += `&phase=${encodeURIComponent(selectedPhase)}`;
-        const res: any = await api.get(url);
-        if (active && res.success) setData(res.data);
-      } catch { if (active) setError("Could not load society performance stats."); }
+        const result = await getOverview({
+          year,
+          monthFrom: isOverall ? undefined : monthFrom,
+          monthTo: isOverall ? undefined : monthTo,
+          phase: selectedPhase || undefined,
+          block: selectedBlock || undefined,
+        });
+        if (active) setData(result);
+      } catch { if (active) setError(t("dashboard.couldNotLoad")); }
       finally { if (active) setLoading(false); }
     };
     fetchAnalytics();
     return () => { active = false; };
-  }, [year, monthFrom, monthTo, selectedPhase, selectedBlock, isOverall]);
+  }, [year, monthFrom, monthTo, selectedPhase, selectedBlock, isOverall, t]);
 
   const handlePhaseChange = (phase: string | null) => { setSelectedBlock(null); setSelectedPhase(phase); };
   const handleBlockChange = (block: string | null) => { setSelectedPhase(null); setSelectedBlock(block); };
@@ -774,11 +744,11 @@ export default function UserOverviewPage() {
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinError(null);
-    if (!pinNumber.trim()) { setPinError("Enter a plot number."); return; }
+    if (!pinNumber.trim()) { setPinError(t("errors.enterPlotNumber")); return; }
     try {
-      const res: any = await api.get(`/plots?block=${pinBlock}&search=${pinNumber.trim()}&limit=10`);
-      if (res.success && res.data) {
-        const exactMatch = res.data.find(
+      const plots = await searchPlots(pinBlock, pinNumber.trim());
+      if (plots) {
+        const exactMatch = plots.find(
           (p: any) =>
             p.plotNumber.toString().trim() === pinNumber.trim() &&
             p.block.toUpperCase() === pinBlock.toUpperCase()
@@ -788,10 +758,10 @@ export default function UserOverviewPage() {
           setPinnedPlotId(exactMatch._id);
           setPinNumber("");
         } else {
-          setPinError(`Plot ${pinNumber} not found in Block ${pinBlock}.`);
+          setPinError(t("errors.plotNotFound", { plot: pinNumber, block: pinBlock }));
         }
       }
-    } catch { setPinError("Verification failed."); }
+    } catch { setPinError(t("errors.verificationFailed")); }
   };
 
   const handleUnpin = () => {
@@ -800,7 +770,7 @@ export default function UserOverviewPage() {
     setPinnedPlotData(null);
   };
 
-  const displayYear = isOverall ? "All Years" : year;
+  const displayYear = isOverall ? t("common.allYears") : year;
 
   return (
     <>
@@ -809,27 +779,24 @@ export default function UserOverviewPage() {
 
         {/* ── Header ── */}
         <div className="dash-header">
-          <div style={{ position: "relative", zIndex: 1 }}>
+          <div>
             <div className="header-eyebrow">
               <div className="eyebrow-dot" />
-              <span className="eyebrow-text">Live Dashboard</span>
+              <span className="eyebrow-text">{t("dashboard.eyebrow")}</span>
             </div>
-            <h1 className="header-title">KKB4 Society Dashboard</h1>
-            <p className="header-sub">
-              Track maintenance collection metrics, search property registries,
-              and view detailed financial declarations.
-            </p>
+            <h1 className="header-title">{t("dashboard.title")}</h1>
+            <p className="header-sub">{t("dashboard.subtitle")}</p>
           </div>
 
           <div className="filter-bar">
             <div className="filter-group">
-              <span className="filter-label">Year</span>
+              <span className="filter-label">{t("common.year")}</span>
               <select
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
                 className="filter-select"
               >
-                <option value="overall">Overall</option>
+                <option value="overall">{t("common.overall")}</option>
                 {[...YEARS_WITH_DATA].reverse().map((y) => (
                   <option key={y} value={String(y)}>{y}</option>
                 ))}
@@ -840,16 +807,16 @@ export default function UserOverviewPage() {
               <>
                 <div className="filter-divider" />
                 <div className="filter-group">
-                  <span className="filter-label">From</span>
+                  <span className="filter-label">{t("common.from")}</span>
                   <select value={monthFrom} onChange={(e) => setMonthFrom(e.target.value)} className="filter-select">
-                    {MONTHS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+                    {MONTHS.map((m) => <option key={m.key} value={m.key}>{t(`months.short.${m.key}`)}</option>)}
                   </select>
                 </div>
                 <div className="filter-divider" />
                 <div className="filter-group">
-                  <span className="filter-label">To</span>
+                  <span className="filter-label">{t("common.to")}</span>
                   <select value={monthTo} onChange={(e) => setMonthTo(e.target.value)} className="filter-select">
-                    {MONTHS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+                    {MONTHS.map((m) => <option key={m.key} value={m.key}>{t(`months.short.${m.key}`)}</option>)}
                   </select>
                 </div>
               </>
@@ -870,13 +837,13 @@ export default function UserOverviewPage() {
                   <div className="pin-header">
                     <div>
                       <div style={{ marginBottom: 8 }}>
-                        <span className="pin-badge-live"><span />Pinned Plot</span>
+                        <span className="pin-badge-live"><span />{t("dashboard.pinnedPlot")}</span>
                       </div>
                       <div className="pin-title">
                         {pinnedPlotData.plotCode || pinnedPlotData.plotBlock}
                       </div>
                       <div className="pin-meta">
-                        Registered Owner:{" "}
+                        {t("dashboard.registeredOwner")}:{" "}
                         <strong>{pinnedPlotData.ownerName}</strong>
                         {" · "}
                         <span className="phase-tag">{pinnedPlotData.phase}</span>
@@ -886,7 +853,7 @@ export default function UserOverviewPage() {
                       <span className={`status-badge ${pinnedPlotData.allotmentStatus === "Active" ? "status-green" : "status-red"}`}>
                         {pinnedPlotData.allotmentStatus}
                       </span>
-                      <button onClick={handleUnpin} className="btn-outline-dark">Change</button>
+                      <button onClick={handleUnpin} className="btn-outline-dark">{t("dashboard.change")}</button>
                     </div>
                   </div>
 
@@ -901,11 +868,11 @@ export default function UserOverviewPage() {
                     return (
                       <>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>
-                            Payment Calendar — {year}
+                          <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)" }}>
+                            {t("dashboard.paymentCalendar")} — {year}
                           </span>
                           <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", fontFamily: "JetBrains Mono, monospace" }}>
-                            {payRecord ? formatPKR(payRecord.mcRate) : "₨ 400"}/mo
+                            {payRecord ? formatPKR(payRecord.mcRate) : "₨ 400"}{t("dashboard.perMonth")}
                           </span>
                         </div>
 
@@ -915,7 +882,7 @@ export default function UserOverviewPage() {
                             const isPaid = val !== null && val !== undefined && val > 0;
                             return (
                               <div key={m.key} className={`month-cell ${isPaid ? "paid" : "unpaid"}`}>
-                                <span className="month-key">{m.key}</span>
+                                <span className="month-key">{t(`months.short.${m.key}`)}</span>
                                 <span className="month-val">{isPaid ? formatPKR(val) : "—"}</span>
                               </div>
                             );
@@ -923,13 +890,13 @@ export default function UserOverviewPage() {
                         </div>
 
                         <div className="summary-strip">
-                          <span className="strip-pill">{paidCount} / 12 Months Paid</span>
+                          <span className="strip-pill">{paidCount} / 12 {t("dashboard.monthsPaid")}</span>
                           <div style={{ display: "flex", gap: 20 }}>
                             <span className="strip-stat">
-                              Received: <strong className="green">{formatPKR(received)}</strong>
+                              {t("dashboard.received")}: <strong className="green">{formatPKR(received)}</strong>
                             </span>
                             <span className="strip-stat">
-                              Remaining: <strong className="red">{formatPKR(remaining)}</strong>
+                              {t("blocks.remaining")}: <strong className="red">{formatPKR(remaining)}</strong>
                             </span>
                           </div>
                         </div>
@@ -942,22 +909,23 @@ export default function UserOverviewPage() {
               <div className="pin-empty">
                 <div>
                   <div className="pin-empty-icon">🏠</div>
-                  <h3>Are you a property owner?</h3>
-                  <p>Pin your plot to check dues, view payment history, and track society disclosures.</p>
+                  <h3>{t("dashboard.areYouOwner")}</h3>
+                  <p>{t("dashboard.pinDescription")}</p>
                 </div>
                 <form onSubmit={handlePinSubmit} className="pin-form">
                   <div className="pin-form-row">
                     <select value={pinBlock} onChange={(e) => setPinBlock(e.target.value)} className="form-select">
-                      {BLOCKS.map((b) => <option key={b} value={b}>Block {b}</option>)}
+                      {BLOCKS.map((b) => <option key={b} value={b}>{t("plot.block")} {b}</option>)}
                     </select>
                     <input
                       type="text"
                       value={pinNumber}
                       onChange={(e) => setPinNumber(e.target.value)}
-                      placeholder="Plot No. (e.g. 14)"
+                      placeholder={t("dashboard.plotPlaceholder")}
                       className="form-input"
+                      dir="ltr"
                     />
-                    <button type="submit" className="btn-primary">Verify & Pin</button>
+                    <button type="submit" className="btn-primary">{t("dashboard.verifyAndPin")}</button>
                   </div>
                   {pinError && <span className="pin-error">{pinError}</span>}
                 </form>
@@ -966,17 +934,17 @@ export default function UserOverviewPage() {
           </div>
 
           {/* Filters Card */}
-          <div className="card" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div className="card-title">Society Filters</div>
+          <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="card-title">{t("dashboard.societyFilters")}</div>
 
             <div>
-              <div className="filter-section-label">Phases</div>
+              <div className="filter-section-label">{t("nav.phases")}</div>
               <div>
                 <button
                   onClick={() => handlePhaseChange(null)}
                   className={`phase-btn ${selectedPhase === null && selectedBlock === null ? "active" : ""}`}
                 >
-                  All
+                  {t("common.all")}
                 </button>
                 {ALL_PHASES.map((ph) => (
                   <button
@@ -991,7 +959,7 @@ export default function UserOverviewPage() {
             </div>
 
             <div>
-              <div className="filter-section-label">Blocks</div>
+              <div className="filter-section-label">{t("nav.blocks")}</div>
               <div className="block-scroll">
                 {BLOCKS.map((b) => (
                   <button
@@ -1028,31 +996,31 @@ export default function UserOverviewPage() {
             {/* Stat Cards */}
             <div className="stat-grid">
               <StatItem
-                icon={<svg width="18" height="18" fill="none" stroke="#3b82f6" strokeWidth="1.6" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>}
-                label="Total Plots"
+                icon={<svg width="16" height="16" fill="none" stroke="#3b82f6" strokeWidth="1.6" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>}
+                label={t("dashboard.totalPlots")}
                 value={data.totalPlots}
-                delta={`${data.activePlots} Active`}
+                delta={`${data.activePlots} ${t("status.active")}`}
                 accentColor="#3b82f6"
               />
               <StatItem
-                icon={<svg width="18" height="18" fill="none" stroke="#f59e0b" strokeWidth="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v2m0 6v2M9.5 9.5C9.5 8.67 10.67 8 12 8s2.5.67 2.5 1.5S13.33 11 12 11s-2.5.67-2.5 1.5S10.67 16 12 16s2.5-.67 2.5-1.5" /></svg>}
-                label="Collection Rate"
+                icon={<svg width="16" height="16" fill="none" stroke="#f59e0b" strokeWidth="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v2m0 6v2M9.5 9.5C9.5 8.67 10.67 8 12 8s2.5.67 2.5 1.5S13.33 11 12 11s-2.5.67-2.5 1.5S10.67 16 12 16s2.5-.67 2.5-1.5" /></svg>}
+                label={t("dashboard.collectionRate")}
                 value={`${data.collectionRate}%`}
-                delta="Overall Progress"
+                delta={t("dashboard.overallProgress")}
                 accentColor="#f59e0b"
               />
               <StatItem
-                icon={<svg width="18" height="18" fill="none" stroke="#10b981" strokeWidth="1.6" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                label="Total Collected"
+                icon={<svg width="16" height="16" fill="none" stroke="#10b981" strokeWidth="1.6" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                label={t("dashboard.totalCollected")}
                 value={formatPKR(data.totalReceived)}
-                delta={`Target: ${formatPKR(data.totalDue)}`}
+                delta={`${t("dashboard.target")}: ${formatPKR(data.totalDue)}`}
                 accentColor="#10b981"
               />
               <StatItem
-                icon={<svg width="18" height="18" fill="none" stroke="#f43f5e" strokeWidth="1.6" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-                label="Total Overdue"
+                icon={<svg width="16" height="16" fill="none" stroke="#f43f5e" strokeWidth="1.6" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+                label={t("dashboard.totalRemaining")}
                 value={formatPKR(data.totalRemaining)}
-                delta="Pending Dues"
+                delta={t("dashboard.pendingDues")}
                 accentColor="#f43f5e"
               />
             </div>
@@ -1061,14 +1029,14 @@ export default function UserOverviewPage() {
             <div className={`chart-row ${isOverall ? "full" : ""}`}>
               {!isOverall && data.perMonthBreakdown?.length > 0 && (
                 <div className="card">
-                  <div className="card-title">Expected vs Received — {displayYear}</div>
-                  <div style={{ width: "100%", height: 300 }}>
+                  <div className="card-title">{t("dashboard.expectedVsReceived")} — {displayYear}</div>
+                  <div style={{ width: "100%", height: 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.perMonthBreakdown} barCategoryGap="28%" barGap={4}>
                         <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,0,0,0.05)" vertical={false} />
                         <XAxis
                           dataKey="month"
-                          tick={{ fontSize: 10, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}
+                          tick={{ fontSize: 10, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600 }}
                           axisLine={false}
                           tickLine={false}
                           tickFormatter={(m) => m.toUpperCase()}
@@ -1085,8 +1053,8 @@ export default function UserOverviewPage() {
                           height={32}
                           wrapperStyle={{ fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#94a3b8" }}
                         />
-                        <Bar dataKey="due" fill="#e2e8f0" radius={[4, 4, 0, 0]} name="Expected Due" />
-                        <Bar dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} name="Actual Received" />
+                        <Bar dataKey="due" fill="#e2e8f0" radius={[4, 4, 0, 0]} name={t("dashboard.expected")} />
+                        <Bar dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} name={t("dashboard.received")} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1095,7 +1063,7 @@ export default function UserOverviewPage() {
 
               {/* Block Rates */}
               <div className="card">
-                <div className="card-title">Block Collection Rates — {displayYear}</div>
+                <div className="card-title">{t("dashboard.blockCollectionRates")} — {displayYear}</div>
                 {isOverall ? (
                   <div className="block-overall-grid">
                     {data.perBlockBreakdown.map((row: any) => (

@@ -2,12 +2,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useSwipe } from "../../hooks/useSwipe";
 
 const navItems = [
   {
     href: "/",
-    label: "Overview",
+    labelKey: "nav.overview",
     icon: (
       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
         <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -19,7 +20,7 @@ const navItems = [
   },
   {
     href: "/blocks",
-    label: "Blocks",
+    labelKey: "nav.blocks",
     icon: (
       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
         <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
@@ -29,7 +30,7 @@ const navItems = [
   },
   {
     href: "/phases",
-    label: "Phases",
+    labelKey: "nav.phases",
     icon: (
       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
         <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -39,8 +40,17 @@ const navItems = [
     ),
   },
   {
+    href: "/plots",
+    labelKey: "nav.plots",
+    icon: (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path d="M4 4h16v6H4zM4 14h16v6H4z" />
+      </svg>
+    ),
+  },
+  {
     href: "/leaderboard",
-    label: "Leaderboard",
+    labelKey: "nav.leaderboard",
     icon: (
       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
         <path d="M8 21V11M12 21V3M16 21v-6" strokeLinecap="round" />
@@ -57,6 +67,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose, isMobile, width = 260 }: SidebarProps) {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const swipeRef = useSwipe<HTMLElement>({
     onSwipeLeft: onClose,
@@ -87,11 +98,11 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
         </div>
         <div>
           <p className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">KKB4</p>
-          <p className="text-[11px] text-gray-500 font-medium">Maintenance</p>
+          <p className="text-[11px] text-gray-500 font-medium">{t("app.tagline")}</p>
         </div>
       </div>
 
-      <p className="px-3 mb-2 section-label">Explore</p>
+      <p className="px-3 mb-2 section-label">{t("nav.explore")}</p>
 
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
@@ -104,7 +115,7 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
               className={`sidebar-link ${active ? "active" : ""}`}
             >
               <span className="sidebar-icon">{item.icon}</span>
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
               {active && (
                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500" />
               )}
@@ -115,10 +126,10 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
 
       <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-white border border-emerald-100 px-4 py-4 mt-4">
         <p className="text-[10px] text-emerald-700 font-bold tracking-wider uppercase">
-          KKB4 Housing Society
+          {t("app.society")}
         </p>
-        <p className="text-[12px] font-semibold text-gray-700 mt-1">Resident Portal</p>
-        <p className="text-[11px] text-gray-500 mt-0.5">v1.0.0</p>
+        <p className="text-[12px] font-semibold text-gray-700 mt-1">{t("app.residentPortal")}</p>
+        <p className="text-[11px] text-gray-500 mt-0.5">{t("app.version")}</p>
       </div>
     </>
   );
