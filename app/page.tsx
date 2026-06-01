@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import {
   BarChart,
@@ -12,6 +13,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import type { RootState } from "../store";
 import { getOverview, getPlotById, searchPlots } from "../services";
 import Spinner from "../components/ui/Spinner";
 import {
@@ -671,6 +673,7 @@ function CustomTooltip({ active, payload, label }: any) {
 /* ─── Main Page ─── */
 export default function UserOverviewPage() {
   const { t } = useTranslation();
+  const resident = useSelector((s: RootState) => s.auth.resident);
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<string>(String(currentYear));
   const defaultRange = getDefaultMonthRange(String(currentYear));
@@ -693,10 +696,16 @@ export default function UserOverviewPage() {
 
   const isOverall = year === "overall";
 
+  // For a signed-in resident, always pin THEIR plot — the manual pin search
+  // below is hidden in that case (they can only have one plot anyway).
   useEffect(() => {
+    if (resident?.id) {
+      setPinnedPlotId(resident.id);
+      return;
+    }
     const saved = localStorage.getItem("kkb4_pinned_plot_id");
     if (saved) setPinnedPlotId(saved);
-  }, []);
+  }, [resident?.id]);
 
   useEffect(() => {
     const range = getDefaultMonthRange(year);
@@ -853,7 +862,9 @@ export default function UserOverviewPage() {
                       <span className={`status-badge ${pinnedPlotData.allotmentStatus === "Active" ? "status-green" : "status-red"}`}>
                         {pinnedPlotData.allotmentStatus}
                       </span>
-                      <button onClick={handleUnpin} className="btn-outline-dark">{t("dashboard.change")}</button>
+                      {!resident && (
+                        <button onClick={handleUnpin} className="btn-outline-dark">{t("dashboard.change")}</button>
+                      )}
                     </div>
                   </div>
 
@@ -905,6 +916,11 @@ export default function UserOverviewPage() {
                   })()}
                 </div>
               )
+            ) : resident ? (
+              // Resident is signed in but pinnedPlotData hasn't arrived yet —
+              // show a spinner instead of the manual-pin fallback so the wrong
+              // affordance never flashes.
+              <div className="center-spinner"><Spinner size={32} /></div>
             ) : (
               <div className="pin-empty">
                 <div>

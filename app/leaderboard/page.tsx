@@ -111,18 +111,18 @@ const styles = `
     flex-shrink: 0;
   }
   .year-label {
-    font-size: 9.5px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     color: var(--text-muted);
   }
   .year-select {
     background: transparent;
     border: none;
     font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 800;
     color: var(--text-primary);
     cursor: pointer;
     outline: none;
@@ -134,58 +134,59 @@ const styles = `
   .tab-bar {
     display: flex;
     background: var(--surface-2);
-    border: 1px solid var(--border);
-    padding: 3px;
-    border-radius: 10px;
-    gap: 2px;
-    margin-bottom: 16px;
+    border: 1px solid var(--border-mid);
+    padding: 5px;
+    border-radius: var(--radius);
+    gap: 4px;
+    margin-bottom: 20px;
     overflow-x: auto;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .tab-btn {
     flex: 1;
     min-width: 120px;
     text-align: center;
-    padding: 8px 12px;
-    border-radius: 7px;
+    padding: 9px 14px;
+    border-radius: 8px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-muted);
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all 0.15s;
     font-family: inherit;
     white-space: nowrap;
   }
-  .tab-btn:hover:not(.active) { color: var(--text-primary); }
+  .tab-btn:hover:not(.active) { color: var(--text-primary); background: var(--surface-3); }
   .tab-btn.active {
     background: var(--surface);
     color: var(--accent);
-    box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+    box-shadow: var(--shadow-sm);
   }
 
   /* ── List Card ── */
   .list-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    box-shadow: var(--shadow-sm);
   }
   .list-card-header {
-    padding: 12px 18px;
+    padding: 16px 22px;
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
   }
   .list-card-title {
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
   .list-card-body {
-    max-height: 580px;
+    max-height: 600px;
     overflow-y: auto;
   }
   .list-card-body::-webkit-scrollbar { width: 4px; }
@@ -196,10 +197,10 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 18px;
+    padding: 14px 22px;
     border-bottom: 1px solid var(--border);
-    gap: 12px;
-    transition: background 0.12s;
+    gap: 14px;
+    transition: background 0.15s;
     text-decoration: none;
     color: inherit;
   }
@@ -208,44 +209,45 @@ const styles = `
   .list-item-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     min-width: 0;
     flex: 1;
   }
   .list-item-right {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
     flex-shrink: 0;
   }
 
   /* Rank medal */
   .rank-badge {
-    width: 28px; height: 28px;
+    width: 36px; height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11.5px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 800;
     font-family: 'JetBrains Mono', monospace;
     flex-shrink: 0;
-    border: 1px solid;
+    border: 1.5px solid;
   }
   .rank-1 {
     background: rgba(217,119,6,0.1);
     color: var(--gold);
-    border-color: rgba(217,119,6,0.25);
+    border-color: rgba(217,119,6,0.3);
+    box-shadow: 0 0 10px rgba(217,119,6,0.15);
   }
   .rank-2 {
-    background: rgba(100,116,139,0.08);
+    background: rgba(100,116,139,0.1);
     color: var(--silver);
-    border-color: rgba(100,116,139,0.22);
+    border-color: rgba(100,116,139,0.3);
   }
   .rank-3 {
-    background: rgba(194,65,12,0.07);
+    background: rgba(194,65,12,0.08);
     color: var(--bronze);
-    border-color: rgba(194,65,12,0.2);
+    border-color: rgba(194,65,12,0.25);
   }
   .rank-other {
     background: var(--surface-3);
@@ -255,24 +257,24 @@ const styles = `
 
   /* Block icon */
   .block-mini-badge {
-    width: 32px; height: 32px;
-    border-radius: 8px;
+    width: 38px; height: 38px;
+    border-radius: 10px;
     background: var(--accent-dim);
     border: 1px solid var(--accent-mid);
     color: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 800;
     font-family: 'JetBrains Mono', monospace;
     flex-shrink: 0;
   }
   .danger-icon-wrap {
-    width: 32px; height: 32px;
-    border-radius: 8px;
+    width: 38px; height: 38px;
+    border-radius: 10px;
     background: var(--red-dim);
-    border: 1px solid rgba(225,29,72,0.16);
+    border: 1px solid rgba(225,29,72,0.18);
     color: var(--red);
     display: flex;
     align-items: center;
@@ -281,8 +283,8 @@ const styles = `
   }
 
   .item-name {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--text-primary);
     line-height: 1.3;
     overflow: hidden;
@@ -297,10 +299,10 @@ const styles = `
     margin-top: 2px;
   }
   .item-amount {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.3px;
     white-space: nowrap;
   }
   .amount-green { color: var(--accent); }
@@ -308,8 +310,8 @@ const styles = `
 
   /* Progress mini */
   .progress-mini {
-    width: 96px;
-    height: 4px;
+    width: 110px;
+    height: 5px;
     background: var(--surface-3);
     border-radius: 99px;
     overflow: hidden;
@@ -317,19 +319,19 @@ const styles = `
   @media (max-width: 640px) { .progress-mini { display: none; } }
   .progress-mini-fill {
     height: 100%;
-    background: var(--accent);
+    background: linear-gradient(90deg, #34d399, var(--accent));
     border-radius: 99px;
     transition: width 0.6s ease;
   }
   .item-rate {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: var(--accent);
     font-family: 'JetBrains Mono', monospace;
   }
   .item-rate-sub {
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-muted);
     font-family: 'JetBrains Mono', monospace;
     text-align: right;
@@ -337,9 +339,9 @@ const styles = `
 
   /* Status badge */
   .status-pill {
-    font-size: 9.5px;
-    font-weight: 600;
-    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
     border-radius: 99px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -520,7 +522,7 @@ export default function LeaderboardPage() {
                           </div>
                         </div>
                         <div className="list-item-right">
-                          <span className="item-amount amount-green">{formatPKR(item.totalReceived)}</span>
+                          <span className="item-amount amount-green">{formatPKR(item.totalPaid)}</span>
                         </div>
                       </Link>
                     ))

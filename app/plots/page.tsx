@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import type { RootState } from "../../store";
 import { getPlots } from "../../services";
 import Spinner from "../../components/ui/Spinner";
 import {
@@ -114,7 +117,7 @@ const styles = `
 
   /* ── Search ── */
   .search-wrap {
-    position: relative;
+    display flex:
     flex-shrink: 0;
   }
   .search-icon {
@@ -436,6 +439,17 @@ const styles = `
 /* ─── Page Component ─── */
 export default function PlotsPage() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const resident = useSelector((s: RootState) => s.auth.resident);
+
+  // Residents shouldn't browse the full plot registry — kick them back to
+  // their own plot. This runs in an effect so navigation happens after mount.
+  useEffect(() => {
+    if (resident?.id) {
+      router.replace(`/plots/${resident.id}`);
+    }
+  }, [resident, router]);
+
   const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -510,7 +524,7 @@ export default function PlotsPage() {
           </div>
 
           <div className="search-wrap">
-            <svg className="search-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="search-icon " width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
             </svg>
@@ -519,7 +533,7 @@ export default function PlotsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("plots.searchPlaceholder")}
-              className="search-input"
+              className="search-input "
             />
           </div>
         </div>

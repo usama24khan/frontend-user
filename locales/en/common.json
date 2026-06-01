@@ -8,6 +8,9 @@
   },
   "nav": {
     "explore": "Explore",
+    "myAccount": "My Account",
+    "myPlot": "My Plot",
+    "myNotices": "My Notices",
     "overview": "Overview",
     "dashboard": "Dashboard",
     "blocks": "Blocks",
@@ -19,6 +22,32 @@
     "import": "Import Data",
     "settings": "Settings",
     "logout": "Logout"
+  },
+  "residentNotices": {
+    "eyebrow": "Resident Notices",
+    "title": "Notices for your plot",
+    "subtitle": "All maintenance notices issued for plot {{plot}}. Tap download to view the PDF.",
+    "subtitleAnon": "All maintenance notices issued for your plot.",
+    "emptyTitle": "No notices yet",
+    "emptyBody": "You'll see any maintenance notices issued for your plot here.",
+    "languageEnglish": "English notice",
+    "languageUrdu": "اردو notice",
+    "deadline": "Deadline",
+    "download": "Download"
+  },
+  "residentLogin": {
+    "title": "Sign in to your plot",
+    "subtitle": "Use your plot number and a registered phone or CNIC to view your maintenance records.",
+    "plotNumber": "Plot Number",
+    "block": "Block",
+    "credential": "Phone or CNIC",
+    "credentialPlaceholder": "0300-0000000 or 00000-0000000-0",
+    "credentialHint": "Enter the phone or CNIC the society has on file for this plot.",
+    "signIn": "Sign In",
+    "signingIn": "Signing in…",
+    "failed": "Sign-in failed",
+    "fillAll": "Please fill in all fields.",
+    "contactAdmin": "Can't sign in? Contact the society office to update your phone or CNIC on file."
   },
   "common": {
     "all": "All",
@@ -146,6 +175,8 @@
     "selectYear": "Select Year",
     "allYears": "All Years",
     "lifetimePaid": "Lifetime Paid",
+    "printHistory": "Print",
+    "printHistoryHint": "Open the browser print dialog to download or print this payment file.",
     "fileSubtitle": "Society Property Registry File detail and collection log.",
     "monthlyPaymentCalendar": "Monthly Payment Calendar",
     "rate": "Rate",

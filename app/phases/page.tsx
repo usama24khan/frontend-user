@@ -14,9 +14,6 @@ const PHASE_THEMES: Record<string, { accent: string; light: string; gradient: st
   "Phase 1": { accent: "#059669", light: "rgba(5,150,105,0.08)", gradient: "#059669" },
   "Phase 2": { accent: "#059669", light: "rgba(5,150,105,0.08)", gradient: "#059669" },
   "Phase 3": { accent: "#059669", light: "rgba(5,150,105,0.08)", gradient: "#059669" },
-  "Phase 4": { accent: "#059669", light: "rgba(5,150,105,0.08)", gradient: "#059669" },
-  "Phase 5": { accent: "#059669", light: "rgba(5,150,105,0.08)", gradient: "#059669" },
-  "Phase 6": { accent: "#059669", light: "rgba(5,150,105,0.08)", gradient: "#059669" },
   "Phase P": { accent: "#059669", light: "rgba(5,150,105,0.08)", gradient: "#059669" },
 };
 

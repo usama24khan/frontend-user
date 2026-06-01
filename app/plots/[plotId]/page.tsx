@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import type { RootState } from "../../../store";
 import { getPlotById } from "../../../services";
 import Spinner from "../../../components/ui/Spinner";
 import { YEARS_WITH_DATA } from "../../../constants/phases";
@@ -456,23 +458,85 @@ const styles = `
     .lifetime-card { min-width: 0; width: 100%; }
     .detail-card { padding: 18px; }
   }
+
+  /* Print button */
+  .pd-print-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 36px; padding: 0 14px; border-radius: 10px;
+    border: 1.5px solid #d1fae5;
+    background: #ecfdf5; color: #065f46;
+    font-size: 12.5px; font-weight: 700; cursor: pointer;
+    transition: background 140ms, border-color 140ms;
+  }
+  .pd-print-btn:hover { background: #d1fae5; border-color: #6ee7b7; }
+
+  /* Print stylesheet — strips layout chrome and prints the payment file. */
+  @media print {
+    /* Reset page background */
+    body { background: #fff !important; }
+
+    /* Hide layout chrome from AppShell (Navbar + Sidebar). They use <header>
+       and <aside> respectively, so target by semantic element rather than
+       class names we don't fully own. */
+    header, aside { display: none !important; }
+
+    /* Remove left padding the AppShell applied to make room for the sidebar. */
+    main, body > div, main > div { padding-left: 0 !important; }
+
+    /* Strip our own UI affordances that aren't payment data. */
+    .controls-bar,
+    .pd-print-btn,
+    .toggle-btn,
+    .year-selector { display: none !important; }
+
+    /* Make the printed surface look like paper, not a card overlay. */
+    .pd-root { padding: 0; max-width: 100%; }
+    .pd-header, .detail-card, .lifetime-card {
+      box-shadow: none !important;
+      border-color: #ccc !important;
+      page-break-inside: avoid;
+    }
+    .pd-header { margin-bottom: 8px; }
+
+    /* Allow long year-by-year sections to break across pages nicely. */
+    .detail-card { page-break-inside: auto; margin-bottom: 12px; }
+
+    /* Crisper colors on paper. */
+    .month-cell.paid { background: #f0fdf4 !important; border-color: #86efac !important; }
+    .month-cell.partial { background: #fffbeb !important; border-color: #fde68a !important; }
+    .month-cell { background: #fff !important; }
+  }
 `;
 
 export default function PlotDetailPage() {
   const { t } = useTranslation();
   const { plotId } = useParams();
+  const router = useRouter();
+  const resident = useSelector((s: RootState) => s.auth.resident);
   const currentYear = new Date().getFullYear();
   const [plot, setPlot] = useState<any>(null);
   const [year, setYear] = useState(currentYear);
   const [allYears, setAllYears] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Residents may only view their own plot. Any other plotId in the URL is
+  // redirected to /plots/[their-id] so they can't browse others' dues.
+  const targetPlotId = plotId as string | undefined;
+  const isOwnPlot = !!resident && resident.id === targetPlotId;
+
+  useEffect(() => {
+    if (!resident || !targetPlotId) return;
+    if (!isOwnPlot) {
+      router.replace(`/plots/${resident.id}`);
+    }
+  }, [resident, targetPlotId, isOwnPlot, router]);
+
   useEffect(() => {
     let active = true;
     const fetchPlot = async () => {
       setLoading(true);
       try {
-        const data = await getPlotById(plotId as string);
+        const data = await getPlotById(targetPlotId as string);
         if (active) setPlot(data);
       } catch (err) {
         console.error("Failed to fetch plot detail:", err);
@@ -480,9 +544,10 @@ export default function PlotDetailPage() {
         if (active) setLoading(false);
       }
     };
-    if (plotId) fetchPlot();
+    // Skip the fetch when we're about to redirect to avoid flashing other plot data.
+    if (targetPlotId && isOwnPlot) fetchPlot();
     return () => { active = false; };
-  }, [plotId]);
+  }, [targetPlotId, isOwnPlot]);
 
   if (loading) {
     return (
@@ -563,6 +628,18 @@ export default function PlotDetailPage() {
             className={`toggle-btn ${allYears ? "active" : ""}`}
           >
             {allYears ? `✓ ${t("common.showingAllHistory")}` : t("common.viewFullHistory")}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="pd-print-btn"
+            title={t("plot.printHistoryHint")}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+            {t("plot.printHistory")}
           </button>
         </div>
 

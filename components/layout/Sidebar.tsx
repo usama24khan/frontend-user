@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store";
 import { useSwipe } from "../../hooks/useSwipe";
 
 const navItems = [
@@ -69,10 +71,37 @@ interface SidebarProps {
 export default function Sidebar({ open, onClose, isMobile, width = 260 }: SidebarProps) {
   const { t } = useTranslation();
   const pathname = usePathname();
+  const resident = useSelector((s: RootState) => s.auth.resident);
   const swipeRef = useSwipe<HTMLElement>({
     onSwipeLeft: onClose,
     enabled: isMobile && open,
   });
+
+  const myAccountItems = resident
+    ? [
+        {
+          href: `/plots/${resident.id}`,
+          labelKey: "nav.myPlot",
+          icon: (
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1V9.5z" />
+            </svg>
+          ),
+          trailing: resident.plotBlock,
+        },
+        {
+          href: "/notices",
+          labelKey: "nav.myNotices",
+          icon: (
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+              <path d="M14 2v6h6" />
+            </svg>
+          ),
+          trailing: null as string | null,
+        },
+      ]
+    : null;
 
   useEffect(() => {
     if (!isMobile) return;
@@ -101,6 +130,38 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
           <p className="text-[11px] text-gray-500 font-medium">{t("app.tagline")}</p>
         </div>
       </div>
+
+      {myAccountItems && (
+        <>
+          <p className="px-3 mb-2 section-label">{t("nav.myAccount")}</p>
+          <nav className="flex flex-col gap-1 mb-4">
+            {myAccountItems.map((item) => {
+              // For /plots/[id] we want active on any sub-path; for /notices we
+              // need exact match so the broader Explore-side /plots route below
+              // doesn't trigger this entry by accident.
+              const active = item.href.startsWith("/plots/")
+                ? pathname.startsWith(item.href)
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={isMobile ? onClose : undefined}
+                  className={`sidebar-link ${active ? "active" : ""}`}
+                >
+                  <span className="sidebar-icon">{item.icon}</span>
+                  <span>{t(item.labelKey)}</span>
+                  {item.trailing && (
+                    <span className="ml-auto text-[10.5px] font-bold text-emerald-700 tabular-nums">
+                      {item.trailing}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </>
+      )}
 
       <p className="px-3 mb-2 section-label">{t("nav.explore")}</p>
 
