@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import type { RootState } from "../../store";
@@ -440,6 +440,7 @@ const styles = `
 export default function PlotsPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const resident = useSelector((s: RootState) => s.auth.resident);
 
   // Residents shouldn't browse the full plot registry — kick them back to
@@ -452,7 +453,7 @@ export default function PlotsPage() {
 
   const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [plots, setPlots] = useState<PlotData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

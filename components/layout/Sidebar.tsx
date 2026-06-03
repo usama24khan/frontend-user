@@ -121,20 +121,20 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
 
   const content = (
     <>
-      <div className="flex items-center gap-3 px-2 mb-8">
-        <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-bold text-[15px] shadow-md shadow-emerald-500/25">
+      <div className="flex items-center gap-3 px-1 pb-5 mb-4 border-b border-gray-100">
+        <div className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-bold text-[15px] shadow-md shadow-emerald-500/25">
           K4
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">KKB4</p>
-          <p className="text-[11px] text-gray-500 font-medium">{t("app.tagline")}</p>
+          <p className="text-[11px] text-gray-500 font-medium truncate">{t("app.residentPortal")}</p>
         </div>
       </div>
 
       {myAccountItems && (
         <>
           <p className="px-3 mb-2 section-label">{t("nav.myAccount")}</p>
-          <nav className="flex flex-col gap-1 mb-4">
+          <nav className="flex flex-col gap-1">
             {myAccountItems.map((item) => {
               // For /plots/[id] we want active on any sub-path; for /notices we
               // need exact match so the broader Explore-side /plots route below
@@ -163,7 +163,9 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
         </>
       )}
 
-      <p className="px-3 mb-2 section-label">{t("nav.explore")}</p>
+      <p className={`px-3 mb-2 section-label ${myAccountItems ? "mt-6" : ""}`}>
+        {t("nav.explore")}
+      </p>
 
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
@@ -177,20 +179,14 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
             >
               <span className="sidebar-icon">{item.icon}</span>
               <span>{t(item.labelKey)}</span>
-              {active && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-white border border-emerald-100 px-4 py-4 mt-4">
-        <p className="text-[10px] text-emerald-700 font-bold tracking-wider uppercase">
-          {t("app.society")}
-        </p>
-        <p className="text-[12px] font-semibold text-gray-700 mt-1">{t("app.residentPortal")}</p>
-        <p className="text-[11px] text-gray-500 mt-0.5">{t("app.version")}</p>
+      <div className="mt-4 pt-4 px-3 border-t border-gray-100">
+        <p className="text-[11px] font-semibold text-gray-500">{t("app.society")}</p>
+        <p className="text-[10.5px] text-gray-400 mt-0.5 tabular-nums">{t("app.version")}</p>
       </div>
     </>
   );
@@ -205,7 +201,7 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
           role="dialog"
           aria-modal="true"
           aria-label="Navigation"
-          className="drawer-panel animate-drawer-in flex flex-col px-4 py-7"
+          className="drawer-panel animate-drawer-in flex flex-col px-5 py-7"
         >
           {content}
         </aside>
@@ -215,7 +211,7 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
 
   return (
     <aside
-      className="hidden lg:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 px-4 py-7 flex-col z-40"
+      className="hidden lg:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-100 px-5 py-7 flex-col z-40"
       style={{ width }}
     >
       {content}

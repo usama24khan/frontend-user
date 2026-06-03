@@ -21,7 +21,8 @@
     "notices": "Notices",
     "import": "Import Data",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "searchPlaceholder": "Search plots, blocks…"
   },
   "residentNotices": {
     "eyebrow": "Resident Notices",

@@ -21,7 +21,8 @@
     "notices": "نوٹسز",
     "import": "ڈیٹا درآمد",
     "settings": "سیٹنگز",
-    "logout": "لاگ آؤٹ"
+    "logout": "لاگ آؤٹ",
+    "searchPlaceholder": "پلاٹ، بلاک تلاش کریں…"
   },
   "residentNotices": {
     "eyebrow": "رہائشی نوٹسز",
