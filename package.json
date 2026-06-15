@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "APP_ENV=development next dev",
+    "dev": "APP_ENV=development next dev --webpack",
     "build:dev": "APP_ENV=development next build",
     "build:prod": "APP_ENV=production next build",
     "start": "APP_ENV=production next start",
