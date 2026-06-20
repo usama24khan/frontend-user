@@ -6,6 +6,7 @@
     "dev": "APP_ENV=development next dev --webpack",
     "build:dev": "APP_ENV=development next build",
     "build:prod": "APP_ENV=production next build",
+    "vercel-build": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npm run build:prod; else npm run build:dev; fi",
     "start": "APP_ENV=production next start",
     "lint": "eslint"
   },
