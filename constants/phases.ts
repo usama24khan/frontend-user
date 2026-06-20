@@ -48,7 +48,7 @@ function resolveApiUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   const env = process.env.NEXT_PUBLIC_VERCEL_ENV;
   if (env === 'production') return 'https://kkb4-backend.vercel.app/api';
-  if (env === 'preview') return 'https://kkb4-backend-enhakprce-usama-khans-projects-a0ecb0d1.vercel.app/api';
+  if (env === 'preview') return 'https://kkb4-backend-git-development-usama-khans-projects-a0ecb0d1.vercel.app/api';
   return 'http://localhost:5000/api';
 }
 export const API_URL = resolveApiUrl();
