@@ -42,15 +42,6 @@ const navItems = [
     ),
   },
   {
-    href: "/plots",
-    labelKey: "nav.plots",
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
-        <path d="M4 4h16v6H4zM4 14h16v6H4z" />
-      </svg>
-    ),
-  },
-  {
     href: "/leaderboard",
     labelKey: "nav.leaderboard",
     icon: (
@@ -122,9 +113,7 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
   const content = (
     <>
       <div className="flex items-center gap-3 px-1 pb-5 mb-4 border-b border-gray-100">
-        <div className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-bold text-[15px] shadow-md shadow-emerald-500/25">
-          K4
-        </div>
+        <img src="/icons/logo.png" alt="KKB4" className="shrink-0 w-10 h-10 rounded-xl object-contain" />
         <div className="min-w-0">
           <p className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">KKB4</p>
           <p className="text-[11px] text-gray-500 font-medium truncate">{t("app.residentPortal")}</p>

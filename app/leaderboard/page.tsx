@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { getTopPlots, getTopBlocks, getDefaulters } from "../../services";
 import Spinner from "../../components/ui/Spinner";
+import ErrorBanner from "../../components/ui/ErrorBanner";
 import { YEARS_WITH_DATA, getMcRateForYear } from "../../constants/phases";
 
 const formatPKR = (n: number) => "₨ " + Math.round(n).toLocaleString("en-PK");
@@ -402,42 +403,45 @@ export default function LeaderboardPage() {
   const [year, setYear] = useState(currentYear);
   const [activeTab, setActiveTab] = useState<"plots" | "blocks" | "defaulters">("plots");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [topPlots, setTopPlots] = useState<any[]>([]);
   const [topBlocks, setTopBlocks] = useState<any[]>([]);
   const [defaulters, setDefaulters] = useState<any[]>([]);
 
-  useEffect(() => {
+  const fetchLeaderboard = async () => {
     let active = true;
-    const fetchLeaderboard = async () => {
-      setLoading(true);
-      try {
-        if (activeTab === "plots") {
-          const data = await getTopPlots(year);
-          if (active) setTopPlots(data);
-        } else if (activeTab === "blocks") {
-          const data = await getTopBlocks(year);
-          if (active) setTopBlocks(data);
-        } else {
-          const data = await getDefaulters(year);
-          if (active) {
-            const zeroPayment = data.zeroPayment || [];
-            const noRecord = data.noRecord || [];
-            const rate = getMcRateForYear(year);
-            const combined = [
-              ...zeroPayment.map((p: any) => ({ plot: p.plot, totalDue: p.totalDue })),
-              ...noRecord.map((plot: any) => ({ plot, totalDue: rate * 12 })),
-            ];
-            setDefaulters(combined);
-          }
+    setLoading(true);
+    setError(null);
+    try {
+      if (activeTab === "plots") {
+        const data = await getTopPlots(year);
+        if (active) setTopPlots(data);
+      } else if (activeTab === "blocks") {
+        const data = await getTopBlocks(year);
+        if (active) setTopBlocks(data);
+      } else {
+        const data = await getDefaulters(year);
+        if (active) {
+          const zeroPayment = data.zeroPayment || [];
+          const noRecord = data.noRecord || [];
+          const rate = getMcRateForYear(year);
+          const combined = [
+            ...zeroPayment.map((p: any) => ({ plot: p.plot, totalDue: p.totalDue })),
+            ...noRecord.map((plot: any) => ({ plot, totalDue: rate * 12 })),
+          ];
+          setDefaulters(combined);
         }
-      } catch (err) {
-        console.error("Failed to fetch leaderboard:", err);
-      } finally {
-        if (active) setLoading(false);
       }
-    };
-    fetchLeaderboard();
+    } catch (err) {
+      if (active) setError(err instanceof Error ? err.message : "Failed to load leaderboard.");
+    } finally {
+      if (active) setLoading(false);
+    }
     return () => { active = false; };
+  };
+
+  useEffect(() => {
+    fetchLeaderboard();
   }, [year, activeTab]);
 
   const TABS = [
@@ -492,6 +496,8 @@ export default function LeaderboardPage() {
         {/* ── Content ── */}
         {loading ? (
           <div className="center-spinner"><Spinner /></div>
+        ) : error ? (
+          <ErrorBanner message={error} onRetry={fetchLeaderboard} />
         ) : (
           <div className="list-card fade-in">
 

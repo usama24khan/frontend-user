@@ -539,7 +539,8 @@ export default function PlotDetailPage() {
         const data = await getPlotById(targetPlotId as string);
         if (active) setPlot(data);
       } catch (err) {
-        console.error("Failed to fetch plot detail:", err);
+        if (active) setPlot(null);
+        console.warn("Failed to fetch plot:", err instanceof Error ? err.message : err);
       } finally {
         if (active) setLoading(false);
       }

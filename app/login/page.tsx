@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import type { RootState } from "../../store";
 import { setCredentials } from "../../store/slices/authSlice";
-import { setLanguage } from "../../store/slices/uiSlice";
 import { residentLogin } from "../../services";
 
 const BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "P"];
@@ -14,8 +13,7 @@ export default function LoginPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const dispatch = useDispatch();
-  const language = useSelector((s: RootState) => s.ui.language);
-  const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated);
+const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated);
 
   const [plotNumber, setPlotNumber] = useState("");
   const [block, setBlock] = useState("A");
@@ -27,15 +25,7 @@ export default function LoginPage() {
     if (isAuthenticated) router.replace("/");
   }, [isAuthenticated, router]);
 
-  const toggleLanguage = () => {
-    const next = language === "en" ? "ur" : "en";
-    dispatch(setLanguage(next));
-    if (typeof document !== "undefined") {
-      document.documentElement.dir = next === "ur" ? "rtl" : "ltr";
-    }
-  };
-
-  const submit = async (e: FormEvent) => {
+const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!plotNumber.trim() || !block || !credential.trim()) {
@@ -61,25 +51,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50/60 px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="flex justify-end mb-3">
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-[12.5px] font-semibold text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
-          >
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
-            </svg>
-            <span>{language === "en" ? "اردو" : "EN"}</span>
-          </button>
-        </div>
-
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-emerald-900/5 p-7 sm:p-9">
+<div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-emerald-900/5 p-7 sm:p-9">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-md shadow-emerald-500/25">
-              K4
-            </div>
+            <img src="/icons/logo.png" alt="KKB4" className="w-12 h-12 rounded-2xl object-contain shrink-0" />
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">
                 {t("app.residentPortal")}

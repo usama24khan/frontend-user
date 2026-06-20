@@ -10,6 +10,7 @@ import {
   type ResidentNotice,
 } from "../../services";
 import Spinner from "../../components/ui/Spinner";
+import ErrorBanner from "../../components/ui/ErrorBanner";
 import { formatPKR } from "../../constants/phases";
 
 const styles = `
@@ -130,20 +131,25 @@ export default function ResidentNoticesPage() {
   const resident = useSelector((s: RootState) => s.auth.resident);
   const [items, setItems] = useState<ResidentNotice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchNotices = async () => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await residentNotices();
+      if (active) setItems(data);
+    } catch (err) {
+      if (active) setError(err instanceof Error ? err.message : "Failed to load notices.");
+    } finally {
+      if (active) setLoading(false);
+    }
+    return () => { active = false; };
+  };
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const data = await residentNotices();
-        if (active) setItems(data);
-      } catch (err) {
-        console.error("Failed to fetch resident notices:", err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
+    fetchNotices();
   }, []);
 
   const handleDownload = (pdfPath: string) => {
@@ -175,6 +181,8 @@ export default function ResidentNoticesPage() {
         <div className="rn-card">
           {loading ? (
             <div className="rn-loading"><Spinner /></div>
+          ) : error ? (
+            <ErrorBanner message={error} onRetry={fetchNotices} />
           ) : items.length === 0 ? (
             <div className="rn-empty">
               <div className="rn-empty-icon">

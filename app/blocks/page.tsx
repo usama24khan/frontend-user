@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { getAllBlocks } from "../../services";
 import Spinner from "../../components/ui/Spinner";
+import ErrorBanner from "../../components/ui/ErrorBanner";
 import { BLOCK_PHASE_MAP, YEARS_WITH_DATA } from "../../constants/phases";
 
 const formatPKR = (n: number) => "₨ " + Math.round(n).toLocaleString("en-PK");
@@ -319,24 +320,25 @@ export default function BlocksPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [blocks, setBlocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBlocks = async () => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getAllBlocks(year);
+      if (active) setBlocks([...data].sort((a: any, b: any) => a.block.localeCompare(b.block)));
+    } catch (err) {
+      if (active) setError(err instanceof Error ? err.message : "Failed to load blocks.");
+    } finally {
+      if (active) setLoading(false);
+    }
+    return () => { active = false; };
+  };
 
   useEffect(() => {
-    let active = true;
-    const fetchBlocks = async () => {
-      setLoading(true);
-      try {
-        const data = await getAllBlocks(year);
-        if (active) {
-          setBlocks([...data].sort((a: any, b: any) => a.block.localeCompare(b.block)));
-        }
-      } catch (err) {
-        console.error("Failed to fetch blocks:", err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
     fetchBlocks();
-    return () => { active = false; };
   }, [year]);
 
   return (
@@ -372,6 +374,8 @@ export default function BlocksPage() {
         {/* ── Content ── */}
         {loading ? (
           <div className="center-spinner"><Spinner /></div>
+        ) : error ? (
+          <ErrorBanner message={error} onRetry={fetchBlocks} />
         ) : (
           <div className="blocks-grid fade-in">
             {blocks.map((b) => {

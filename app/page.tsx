@@ -96,12 +96,16 @@ const styles = `
     border-radius: 12px;
     padding: 18px 22px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 16px;
     box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  @media (max-width: 640px) {
+    .dash-header { padding: 14px 16px; flex-direction: column; gap: 10px; }
+    .filter-bar { width: 100%; }
   }
   .header-eyebrow {
     display: flex;
@@ -176,6 +180,13 @@ const styles = `
     width: 1px; height: 16px;
     background: var(--border);
     flex-shrink: 0;
+  }
+  @media (max-width: 640px) {
+    .filter-bar { border-radius: 8px; gap: 0; }
+    .filter-group { padding: 5px 8px; }
+    .filter-label { display: none; }
+    .filter-select { font-size: 12px; }
+    .filter-divider { height: 12px; }
   }
 
   /* ── Main Grid ── */
@@ -685,6 +696,7 @@ export default function UserOverviewPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [pinnedPlotId, setPinnedPlotId] = useState<string | null>(null);
   const [pinnedPlotData, setPinnedPlotData] = useState<any>(null);
@@ -740,12 +752,19 @@ export default function UserOverviewPage() {
           block: selectedBlock || undefined,
         });
         if (active) setData(result);
-      } catch { if (active) setError(t("dashboard.couldNotLoad")); }
+      } catch (err) { if (active) setError(err instanceof Error ? err.message : t("dashboard.couldNotLoad")); }
       finally { if (active) setLoading(false); }
     };
     fetchAnalytics();
     return () => { active = false; };
-  }, [year, monthFrom, monthTo, selectedPhase, selectedBlock, isOverall, t]);
+  }, [year, monthFrom, monthTo, selectedPhase, selectedBlock, isOverall, t, refreshKey]);
+
+  // Pull-to-refresh support
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1);
+    window.addEventListener("kkb4-refresh", handler);
+    return () => window.removeEventListener("kkb4-refresh", handler);
+  }, []);
 
   const handlePhaseChange = (phase: string | null) => { setSelectedBlock(null); setSelectedPhase(phase); };
   const handleBlockChange = (block: string | null) => { setSelectedPhase(null); setSelectedBlock(block); };
@@ -1046,33 +1065,39 @@ export default function UserOverviewPage() {
               {!isOverall && data.perMonthBreakdown?.length > 0 && (
                 <div className="card">
                   <div className="card-title">{t("dashboard.expectedVsReceived")} — {displayYear}</div>
-                  <div style={{ width: "100%", height: 280 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.perMonthBreakdown} barCategoryGap="28%" barGap={4}>
-                        <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                        <XAxis
-                          dataKey="month"
-                          tick={{ fontSize: 10, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600 }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={(m) => m.toUpperCase()}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 10, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={(v) => `${(v / 1_000).toFixed(0)}K`}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
-                        <Legend
-                          verticalAlign="top"
-                          height={32}
-                          wrapperStyle={{ fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#94a3b8" }}
-                        />
-                        <Bar dataKey="due" fill="#e2e8f0" radius={[4, 4, 0, 0]} name={t("dashboard.expected")} />
-                        <Bar dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} name={t("dashboard.received")} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div style={{ width: "100%", height: 240 }}>
+                      <ResponsiveContainer width="99%" height="100%">
+                        <BarChart
+                          data={data.perMonthBreakdown}
+                          barCategoryGap="28%"
+                          barGap={4}
+                          margin={{ top: 4, right: 8, bottom: 0, left: -8 }}
+                        >
+                          <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 10, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600 }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(m) => String(m).toUpperCase().slice(0, 3)}
+                          />
+                          <YAxis
+                            width={36}
+                            tick={{ fontSize: 10, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v) => `${(v / 1_000).toFixed(0)}K`}
+                          />
+                          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+                          <Legend
+                            verticalAlign="top"
+                            height={28}
+                            wrapperStyle={{ fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#94a3b8" }}
+                          />
+                          <Bar dataKey="due" fill="#e2e8f0" radius={[4, 4, 0, 0]} name={t("dashboard.expected")} />
+                          <Bar dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} name={t("dashboard.received")} />
+                        </BarChart>
+                      </ResponsiveContainer>
                   </div>
                 </div>
               )}

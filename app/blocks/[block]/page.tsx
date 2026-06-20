@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import Spinner from "../../../components/ui/Spinner";
+import ErrorBanner from "../../../components/ui/ErrorBanner";
 import { getBlockDetail } from "../../../services";
-import { BLOCK_PHASE_MAP, YEARS_WITH_DATA } from "../../../constants/phases";
+import { BLOCK_PHASE_MAP } from "../../../constants/phases";
 
 const formatPKR = (n: number) => "₨ " + Math.round(n).toLocaleString("en-PK");
 
@@ -204,12 +204,9 @@ const styles = `
     padding: 12px 18px;
     border-bottom: 1px solid var(--border);
     gap: 14px;
-    text-decoration: none;
     color: inherit;
-    transition: background 0.12s;
   }
   .list-row:last-child { border-bottom: none; }
-  .list-row:hover { background: var(--surface-2); }
   .list-row-left {
     display: flex;
     align-items: center;
@@ -223,6 +220,26 @@ const styles = `
     gap: 14px;
     flex-shrink: 0;
   }
+  .dues-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+  }
+  .dues-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .dues-amount {
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--red);
+  }
+  .dues-amount.clear { color: var(--accent); }
   .row-avatar {
     width: 34px; height: 34px;
     border-radius: 8px;
@@ -264,22 +281,7 @@ const styles = `
   .pill-active { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-mid); }
   .pill-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(225,29,72,0.18); }
 
-  .progress-mini {
-    width: 96px;
-    height: 4px;
-    background: var(--surface-3);
-    border-radius: 99px;
-    overflow: hidden;
-  }
-  @media (max-width: 640px) { .progress-mini { display: none; } }
-  .progress-mini-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 99px;
-    transition: width 0.6s ease;
-  }
-
-  .empty-state {
+.empty-state {
     padding: 48px 24px;
     text-align: center;
     font-size: 13px;
@@ -307,30 +309,32 @@ export default function BlockDetailPage() {
   const params = useParams();
   const block = (params.block as string)?.toUpperCase();
   const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear);
   const [plots, setPlots] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBlockDetails = async () => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getBlockDetail(block, currentYear);
+      if (active) {
+        setPlots(data.plots || []);
+        setStats(data.stats || null);
+      }
+    } catch (err) {
+      if (active) setError(err instanceof Error ? err.message : "Failed to load block details.");
+    } finally {
+      if (active) setLoading(false);
+    }
+    return () => { active = false; };
+  };
 
   useEffect(() => {
-    let active = true;
-    const fetchBlockDetails = async () => {
-      setLoading(true);
-      try {
-        const data = await getBlockDetail(block, year);
-        if (active) {
-          setPlots(data.plots || []);
-          setStats(data.stats || null);
-        }
-      } catch (err) {
-        console.error("Failed to fetch block details:", err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
     if (block) fetchBlockDetails();
-    return () => { active = false; };
-  }, [block, year]);
+  }, [block]);
 
   return (
     <>
@@ -354,20 +358,14 @@ export default function BlockDetailPage() {
 
           <div className="year-selector">
             <span className="year-label">{t("common.year")}</span>
-            <select
-              value={year}
-              onChange={(e) => setYear(parseInt(e.target.value))}
-              className="year-select"
-            >
-              {[...YEARS_WITH_DATA].reverse().map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{currentYear}</span>
           </div>
         </div>
 
         {loading ? (
           <div className="center-spinner"><Spinner /></div>
+        ) : error ? (
+          <ErrorBanner message={error} onRetry={fetchBlockDetails} />
         ) : (
           <>
             {/* KPIs */}
@@ -405,10 +403,10 @@ export default function BlockDetailPage() {
                   <div className="empty-state">{t("blocks.noProperties", { block })}</div>
                 ) : (
                   plots.map((plot) => {
-                    const pct = plot.due > 0 ? Math.round((plot.paid / plot.due) * 100) : 0;
                     const isActive = plot.allotmentStatus === "Active";
+                    const remaining = plot.remaining ?? 0;
                     return (
-                      <Link key={plot._id} href={`/plots/${plot._id}`} className="list-row">
+                      <div key={plot._id} className="list-row">
                         <div className="list-row-left">
                           <div className="row-avatar">{plot.plotBlock}</div>
                           <div style={{ minWidth: 0 }}>
@@ -422,11 +420,14 @@ export default function BlockDetailPage() {
                           <span className={`status-pill ${isActive ? "pill-active" : "pill-red"}`}>
                             {plot.allotmentStatus}
                           </span>
-                          <div className="progress-mini">
-                            <div className="progress-mini-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+                          <div className="dues-badge">
+                            <span className="dues-label">{t("blocks.remaining")}</span>
+                            <span className={`dues-amount ${remaining === 0 ? "clear" : ""}`}>
+                              {remaining === 0 ? "✓ Clear" : formatPKR(remaining)}
+                            </span>
                           </div>
                         </div>
-                      </Link>
+                      </div>
                     );
                   })
                 )}
