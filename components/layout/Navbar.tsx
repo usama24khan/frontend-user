@@ -3,8 +3,10 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 import { RootState } from "../../store";
 import { logout } from "../../store/slices/authSlice";
+import { getAppMode, type AppMode } from "../../services/configService";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -16,6 +18,11 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const resident = useSelector((state: RootState) => state.auth.resident);
+  const [appMode, setAppMode] = useState<AppMode | null>(null);
+
+  useEffect(() => {
+    getAppMode().then(setAppMode);
+  }, []);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -66,7 +73,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200/70 shadow-[0_1px_2px_rgba(16,24,40,0.04)] flex items-center gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
-      {/* ── Left: menu + title/breadcrumb + search ── */}
+      {/* ── Left: logo + menu + title/breadcrumb ── */}
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
         <button
           type="button"
@@ -78,6 +85,16 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
           </svg>
         </button>
+
+        {/* Logo — always visible */}
+        <div className="shrink-0 flex items-center gap-2">
+          <img src="/icons/logo.png" alt="KKB4" className="w-8 h-8 rounded-xl object-contain" />
+          {appMode === "test" && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-amber-100 text-amber-700 border border-amber-300 select-none">
+              TEST
+            </span>
+          )}
+        </div>
 
         <div className="min-w-0">
           {parents.length > 0 && (
@@ -99,10 +116,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             {title}
           </h1>
         </div>
-
       </div>
 
-      {/* ── Right: profile · language · logout ── */}
+      {/* ── Right: profile · logout ── */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {resident && (
           <div className="hidden sm:flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50/60">
@@ -133,7 +149,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
               <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" />
             </svg>
-            <span className="hidden sm:inline">{t("nav.logout")}</span>
+            <span>{t("nav.logout")}</span>
           </button>
         )}
       </div>
