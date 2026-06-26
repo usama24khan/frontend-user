@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { RootState } from "../../store";
 import { setCredentials } from "../../store/slices/authSlice";
 import { residentLogin } from "../../services";
+import { getAppMode, type AppMode } from "../../services/configService";
 
 const BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "P"];
 
@@ -20,10 +21,15 @@ const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated);
   const [credential, setCredential] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [appMode, setAppMode] = useState<AppMode | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) router.replace("/");
   }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    getAppMode().then(setAppMode);
+  }, []);
 
 const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -55,9 +61,16 @@ const submit = async (e: FormEvent) => {
           <div className="flex items-center gap-3 mb-6">
             <img src="/icons/logo.png" alt="KKB4" className="w-12 h-12 rounded-2xl object-contain shrink-0" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">
-                {t("app.residentPortal")}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">
+                  {t("app.residentPortal")}
+                </p>
+                {appMode === "test" && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-amber-100 text-amber-700 border border-amber-300 select-none">
+                    TEST
+                  </span>
+                )}
+              </div>
               <h1 className="text-[18px] font-extrabold text-gray-900 leading-tight">
                 {t("residentLogin.title")}
               </h1>

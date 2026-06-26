@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
 import { useSwipe } from "../../hooks/useSwipe";
+import { getAppMode, type AppMode } from "../../services/configService";
 
 const navItems = [
   {
@@ -63,6 +64,7 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
   const { t } = useTranslation();
   const pathname = usePathname();
   const resident = useSelector((s: RootState) => s.auth.resident);
+  const [appMode, setAppMode] = useState<AppMode | null>(null);
   const swipeRef = useSwipe<HTMLElement>({
     onSwipeLeft: onClose,
     enabled: isMobile && open,
@@ -95,6 +97,10 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
     : null;
 
   useEffect(() => {
+    getAppMode().then(setAppMode);
+  }, []);
+
+  useEffect(() => {
     if (!isMobile) return;
     if (open) {
       const prev = document.body.style.overflow;
@@ -114,8 +120,15 @@ export default function Sidebar({ open, onClose, isMobile, width = 260 }: Sideba
     <>
       <div className="flex items-center gap-3 px-1 pb-5 mb-4 border-b border-gray-100">
         <img src="/icons/logo.png" alt="KKB4" className="shrink-0 w-10 h-10 rounded-xl object-contain" />
-        <div className="min-w-0">
-          <p className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">KKB4</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">KKB4</p>
+            {appMode === "test" && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-amber-100 text-amber-700 border border-amber-300 select-none">
+                TEST
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-gray-500 font-medium truncate">{t("app.residentPortal")}</p>
         </div>
       </div>
