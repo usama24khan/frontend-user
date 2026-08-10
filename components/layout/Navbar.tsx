@@ -17,7 +17,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
-  const resident = useSelector((state: RootState) => state.auth.resident);
+  const user = useSelector((state: RootState) => state.auth.user);
   const [appMode, setAppMode] = useState<AppMode | null>(null);
 
   useEffect(() => {
@@ -33,9 +33,10 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const SECTION_LABEL: Record<string, string> = {
     blocks: t("nav.blocks"),
     phases: t("nav.phases"),
-    plots: t("nav.plots"),
+    plots: t("nav.searchRecords"),
     leaderboard: t("nav.leaderboard"),
-    notices: t("nav.myNotices"),
+    notices: t("nav.notices"),
+    complaints: t("nav.complaint"),
   };
 
   const parts = pathname.split("/").filter(Boolean);
@@ -56,10 +57,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       parents = [overviewCrumb];
     } else {
       if (section === "plots") {
-        title =
-          resident && sub === resident.id
-            ? resident.plotBlock || t("nav.myPlot")
-            : t("common.details");
+        title = t("common.details");
       } else {
         title = decodeURIComponent(sub);
       }
@@ -67,9 +65,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     }
   }
 
-  const initial = (resident?.ownerName || resident?.plotBlock || "?")
-    .slice(0, 1)
-    .toUpperCase();
+  const initial = (user?.email || "?").slice(0, 1).toUpperCase();
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200/70 shadow-[0_1px_2px_rgba(16,24,40,0.04)] flex items-center gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
@@ -120,25 +116,25 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 
       {/* ── Right: profile · logout ── */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {resident && (
+        {user && (
           <div className="hidden sm:flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50/60">
             <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center">
               {initial}
             </div>
             <div className="leading-tight">
-              <p className="text-[12px] font-bold text-gray-900 truncate max-w-40">
-                {resident.ownerName || resident.plotBlock}
+              <p className="text-[12px] font-bold text-gray-900 truncate max-w-48">
+                {user.email}
               </p>
-              <p className="text-[10.5px] text-emerald-700 font-semibold tabular-nums">
-                {resident.plotBlock}
+              <p className="text-[10.5px] text-emerald-700 font-semibold">
+                {t("app.residentPortal")}
               </p>
             </div>
           </div>
         )}
 
-        {resident && <div className="hidden sm:block w-px h-7 bg-gray-200" aria-hidden="true" />}
+        {user && <div className="hidden sm:block w-px h-7 bg-gray-200" aria-hidden="true" />}
 
-        {resident && (
+        {user && (
           <button
             type="button"
             onClick={handleLogout}

@@ -1,30 +1,28 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export interface ResidentProfile {
-  id: string;
-  plotNumber: string;
-  block: string;
-  phase: string;
-  plotBlock: string;
-  plotCode: string;
-  ownerName: string;
+/**
+ * The portal has one shared account for the whole society — there is no
+ * per-resident identity, so the only thing we hold is the signed-in email.
+ */
+export interface PortalUser {
+  email: string;
 }
 
 interface AuthState {
-  resident: ResidentProfile | null;
+  user: PortalUser | null;
   token: string | null;
   isAuthenticated: boolean;
   hydrated: boolean;
 }
 
 const initialState: AuthState = {
-  resident: null,
+  user: null,
   token: null,
   isAuthenticated: false,
   hydrated: false,
 };
 
-const STORAGE_KEY = "kkb4_resident_auth";
+const STORAGE_KEY = "kkb4_user_auth";
 
 const authSlice = createSlice({
   name: "auth",
@@ -32,9 +30,9 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ resident: ResidentProfile; token: string }>,
+      action: PayloadAction<{ user: PortalUser; token: string }>,
     ) => {
-      state.resident = action.payload.resident;
+      state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
       state.hydrated = true;
@@ -42,13 +40,13 @@ const authSlice = createSlice({
         try {
           localStorage.setItem(
             STORAGE_KEY,
-            JSON.stringify({ resident: action.payload.resident, token: action.payload.token }),
+            JSON.stringify({ user: action.payload.user, token: action.payload.token }),
           );
         } catch { /* quota or privacy mode — ignore */ }
       }
     },
     logout: (state) => {
-      state.resident = null;
+      state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       state.hydrated = true;
@@ -62,8 +60,8 @@ const authSlice = createSlice({
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed?.token && parsed?.resident) {
-            state.resident = parsed.resident;
+          if (parsed?.token && parsed?.user) {
+            state.user = parsed.user;
             state.token = parsed.token;
             state.isAuthenticated = true;
           }

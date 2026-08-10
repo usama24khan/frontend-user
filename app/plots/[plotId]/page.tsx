@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
+import { useParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import type { RootState } from "../../../store";
 import { getPlotById } from "../../../services";
 import Spinner from "../../../components/ui/Spinner";
 import { YEARS_WITH_DATA } from "../../../constants/phases";
@@ -511,25 +509,13 @@ const styles = `
 export default function PlotDetailPage() {
   const { t } = useTranslation();
   const { plotId } = useParams();
-  const router = useRouter();
-  const resident = useSelector((s: RootState) => s.auth.resident);
   const currentYear = new Date().getFullYear();
   const [plot, setPlot] = useState<any>(null);
   const [year, setYear] = useState(currentYear);
   const [allYears, setAllYears] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Residents may only view their own plot. Any other plotId in the URL is
-  // redirected to /plots/[their-id] so they can't browse others' dues.
   const targetPlotId = plotId as string | undefined;
-  const isOwnPlot = !!resident && resident.id === targetPlotId;
-
-  useEffect(() => {
-    if (!resident || !targetPlotId) return;
-    if (!isOwnPlot) {
-      router.replace(`/plots/${resident.id}`);
-    }
-  }, [resident, targetPlotId, isOwnPlot, router]);
 
   useEffect(() => {
     let active = true;
@@ -545,10 +531,9 @@ export default function PlotDetailPage() {
         if (active) setLoading(false);
       }
     };
-    // Skip the fetch when we're about to redirect to avoid flashing other plot data.
-    if (targetPlotId && isOwnPlot) fetchPlot();
+    if (targetPlotId) fetchPlot();
     return () => { active = false; };
-  }, [targetPlotId, isOwnPlot]);
+  }, [targetPlotId]);
 
   if (loading) {
     return (

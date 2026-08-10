@@ -5,3 +5,4 @@ export * from './blockService';
 export * from './phaseService';
 export * from './statsService';
 export * from './authService';
+export * from './complaintService';

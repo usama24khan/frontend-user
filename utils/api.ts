@@ -2,7 +2,7 @@ import axios from 'axios';
 import { API_URL as PHASES_API_URL } from '../constants/phases';
 
 const API_URL = PHASES_API_URL;
-const STORAGE_KEY = 'kkb4_resident_auth';
+const STORAGE_KEY = 'kkb4_user_auth';
 
 const api = axios.create({
   baseURL: API_URL,

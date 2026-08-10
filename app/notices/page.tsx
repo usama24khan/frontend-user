@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import type { RootState } from "../../store";
 import {
-  residentNotices,
+  societyNotices,
   getNoticeDownloadUrl,
-  type ResidentNotice,
+  type SocietyNotice,
 } from "../../services";
 import Spinner from "../../components/ui/Spinner";
 import ErrorBanner from "../../components/ui/ErrorBanner";
@@ -126,10 +124,9 @@ const styles = `
   }
 `;
 
-export default function ResidentNoticesPage() {
+export default function SocietyNoticesPage() {
   const { t } = useTranslation();
-  const resident = useSelector((s: RootState) => s.auth.resident);
-  const [items, setItems] = useState<ResidentNotice[]>([]);
+  const [items, setItems] = useState<SocietyNotice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -138,7 +135,7 @@ export default function ResidentNoticesPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await residentNotices();
+      const data = await societyNotices();
       if (active) setItems(data);
     } catch (err) {
       if (active) setError(err instanceof Error ? err.message : "Failed to load notices.");
@@ -157,7 +154,7 @@ export default function ResidentNoticesPage() {
     window.open(getNoticeDownloadUrl(pdfPath), "_blank");
   };
 
-  const formatYearLabel = (n: ResidentNotice) => {
+  const formatYearLabel = (n: SocietyNotice) => {
     if (n.yearFrom && n.yearTo && n.yearFrom !== n.yearTo) {
       return `${n.yearFrom}–${n.yearTo}`;
     }
@@ -169,13 +166,9 @@ export default function ResidentNoticesPage() {
       <style>{styles}</style>
       <div className="rn-root">
         <div className="rn-header">
-          <div className="rn-eyebrow">{t("residentNotices.eyebrow")}</div>
-          <h1 className="rn-title">{t("residentNotices.title")}</h1>
-          <p className="rn-sub">
-            {resident
-              ? t("residentNotices.subtitle", { plot: resident.plotBlock })
-              : t("residentNotices.subtitleAnon")}
-          </p>
+          <div className="rn-eyebrow">{t("societyNotices.eyebrow")}</div>
+          <h1 className="rn-title">{t("societyNotices.title")}</h1>
+          <p className="rn-sub">{t("societyNotices.subtitleAll")}</p>
         </div>
 
         <div className="rn-card">
@@ -191,8 +184,8 @@ export default function ResidentNoticesPage() {
                   <path d="M14 2v6h6" />
                 </svg>
               </div>
-              <p className="rn-empty-title">{t("residentNotices.emptyTitle")}</p>
-              <p className="rn-empty-body">{t("residentNotices.emptyBody")}</p>
+              <p className="rn-empty-title">{t("societyNotices.emptyTitle")}</p>
+              <p className="rn-empty-body">{t("societyNotices.emptyBody")}</p>
             </div>
           ) : (
             items.map((n) => (
@@ -207,14 +200,20 @@ export default function ResidentNoticesPage() {
                   <p className="rn-row-title">
                     <span className="rn-tag">{n.type}</span>
                     <span className="rn-tag year">{formatYearLabel(n)}</span>
-                    {n.language === "ur"
-                      ? t("residentNotices.languageUrdu")
-                      : t("residentNotices.languageEnglish")}
+                    {/* Notices are society-wide here, so lead with who it targets.
+                        Pre-migration records have no label, and a plot targetId
+                        is a raw ObjectId — show a generic label for those. */}
+                    {n.targetLabel ||
+                      (n.type === "plot" ? t("societyNotices.plotNotice") : n.targetId)}
                   </p>
                   <p className="rn-row-meta">
+                    {n.language === "ur"
+                      ? t("societyNotices.languageUrdu")
+                      : t("societyNotices.languageEnglish")}
+                    {" · "}
                     {new Date(n.createdAt).toLocaleDateString()}
                     {n.paymentDeadline
-                      ? ` · ${t("residentNotices.deadline")}: ${new Date(n.paymentDeadline).toLocaleDateString()}`
+                      ? ` · ${t("societyNotices.deadline")}: ${new Date(n.paymentDeadline).toLocaleDateString()}`
                       : ""}
                   </p>
                 </div>
@@ -230,7 +229,7 @@ export default function ResidentNoticesPage() {
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    {t("residentNotices.download")}
+                    {t("societyNotices.download")}
                   </button>
                 )}
               </div>

@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useSelector } from "react-redux";
+import { useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import type { RootState } from "../../store";
 import { getPlots } from "../../services";
 import Spinner from "../../components/ui/Spinner";
 import {
@@ -117,12 +115,13 @@ const styles = `
 
   /* ── Search ── */
   .search-wrap {
-    display flex:
+    position: relative;
+    display: flex;
     flex-shrink: 0;
   }
   .search-icon {
     position: absolute;
-    left: 11px;
+    inset-inline-start: 11px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
@@ -132,14 +131,20 @@ const styles = `
     background: #fff;
     border: 1px solid var(--border-bright);
     border-radius: 8px;
-    padding: 8px 12px 8px 32px;
+    padding-block: 9px;
+    padding-inline: 32px 12px;
     font-family: inherit;
     font-size: 12.5px;
     font-weight: 500;
     color: var(--text-primary);
-    width: 240px;
+    width: 280px;
+    max-width: 100%;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  @media (max-width: 640px) {
+    .search-wrap { width: 100%; }
+    .search-input { width: 100%; }
   }
   .search-input::placeholder { color: var(--text-muted); }
   .search-input:focus {
@@ -439,17 +444,7 @@ const styles = `
 /* ─── Page Component ─── */
 export default function PlotsPage() {
   const { t } = useTranslation();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const resident = useSelector((s: RootState) => s.auth.resident);
-
-  // Residents shouldn't browse the full plot registry — kick them back to
-  // their own plot. This runs in an effect so navigation happens after mount.
-  useEffect(() => {
-    if (resident?.id) {
-      router.replace(`/plots/${resident.id}`);
-    }
-  }, [resident, router]);
 
   const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
@@ -463,6 +458,16 @@ export default function PlotsPage() {
 
   const limit = 50;
 
+  // Search is the primary way to find a record here, so debounce it rather than
+  // firing a request per keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search]);
+
   const fetchPlots = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -474,7 +479,7 @@ export default function PlotsPage() {
         sortOrder: 'asc',
         block: selectedBlock,
         phase: selectedPhase,
-        search,
+        search: debouncedSearch,
       });
       setPlots(result.data);
       setTotal(result.meta?.total || 0);
@@ -484,10 +489,10 @@ export default function PlotsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedBlock, selectedPhase, search]);
+  }, [page, selectedBlock, selectedPhase, debouncedSearch]);
 
   useEffect(() => { fetchPlots(); }, [fetchPlots]);
-  useEffect(() => { setPage(1); }, [selectedBlock, selectedPhase, search]);
+  useEffect(() => { setPage(1); }, [selectedBlock, selectedPhase, debouncedSearch]);
 
   const handlePhaseChange = (ph: string | null) => { setSelectedBlock(null); setSelectedPhase(ph); };
   const handleBlockChange = (b: string | null) => { setSelectedPhase(null); setSelectedBlock(b); };
