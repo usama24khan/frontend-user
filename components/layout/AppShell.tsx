@@ -12,7 +12,9 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import "../../utils/i18n";
 
 const SIDEBAR_WIDTH = 260;
-const BARE_PATHS = ["/login"];
+// Rendered without the portal chrome (sidebar/navbar/bottom nav): /login, and
+// the shared document pages, which are opened by people who aren't using the app.
+const BARE_PATHS = ["/login", "/view"];
 
 // ── Pull-to-refresh hook ──────────────────────────────────────────────────────
 // Data-driven pages that register a refetch callback will receive the refresh.
@@ -96,6 +98,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const { pullDistance, refreshing } = usePullToRefresh(handleRefresh, isMobile);
+
+  // Shared document pages render straight through: no auth providers, and no
+  // wait for mount. They are server-rendered on purpose so that a link preview
+  // crawler — and a resident on a cold load — receive real HTML rather than the
+  // empty shell this component otherwise returns before hydration.
+  const isPublicDocument =
+    pathname === "/view" || pathname.startsWith("/view/");
+  if (isPublicDocument) {
+    return <main className="min-h-screen bg-gray-50/60">{children}</main>;
+  }
 
   if (!mounted) return null;
 

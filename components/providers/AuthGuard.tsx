@@ -6,7 +6,10 @@ import type { RootState } from "../../store";
 import { initializeAuth } from "../../store/slices/authSlice";
 
 // Routes that don't require auth. Everything else redirects to /login if signed out.
-const PUBLIC_PATHS = ["/login"];
+// `/view` holds the shareable notice/receipt pages: residents open those from a
+// WhatsApp message without signing in, and WhatsApp's crawler has no session at
+// all. Access is gated by the document's unguessable id instead.
+const PUBLIC_PATHS = ["/login", "/view"];
 
 interface Props {
   children: React.ReactNode;
