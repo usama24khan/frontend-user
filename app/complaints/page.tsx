@@ -11,6 +11,7 @@ import {
   type TrackedComplaint,
   type RememberedComplaint,
 } from "../../services";
+import { textDirectionProps, detectTextDirection } from "../../utils/textDirection";
 
 const styles = `
   .cp-root {
@@ -96,6 +97,16 @@ const styles = `
     box-shadow: 0 0 0 3px rgba(5,150,105,0.12);
   }
   .cp-textarea { min-height: 130px; resize: vertical; line-height: 1.6; }
+  /* Urdu text gets the Nastaliq face and the extra leading it needs. */
+  .cp-result-message[dir="rtl"],
+  .cp-list-meta[dir="rtl"],
+  .cp-textarea[dir="rtl"],
+  .cp-input[dir="rtl"] {
+    font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', serif;
+    text-align: start;
+  }
+  .cp-result-message[dir="rtl"] { font-size: 14px; line-height: 2; }
+  .cp-textarea[dir="rtl"] { line-height: 2.1; }
   .cp-hint { font-size: 11px; color: #94a3b8; margin: 6px 0 0; }
   .cp-counter { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; }
   .cp-label-row { display: flex; align-items: baseline; justify-content: space-between; }
@@ -485,6 +496,7 @@ export default function ComplaintsPage() {
                       value={name} onChange={(e) => setName(e.target.value)}
                       placeholder={t("complaint.namePlaceholder")}
                       maxLength={120} autoComplete="name"
+                      dir={detectTextDirection(name)}
                     />
                   </div>
                   <div className="cp-field">
@@ -507,6 +519,9 @@ export default function ComplaintsPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value.slice(0, MAX_MESSAGE))}
                     placeholder={t("complaint.detailsPlaceholder")}
+                    // Flips to right-to-left once the resident is mostly typing
+                    // Urdu, so what they see matches what they are writing.
+                    dir={detectTextDirection(message)}
                   />
                   <p className="cp-hint">{t("complaint.detailsHint")}</p>
                 </div>
@@ -567,7 +582,9 @@ export default function ComplaintsPage() {
                   <div className="cp-result-name">
                     {tracked.name} · {t("complaint.submittedOn")} {formatDate(tracked.createdAt)}
                   </div>
-                  <div className="cp-result-message">{tracked.message}</div>
+                  <div className="cp-result-message" {...textDirectionProps(tracked.message)}>
+                    {tracked.message}
+                  </div>
 
                   {tracked.statusHistory?.length > 0 && (
                     <div className="cp-timeline">
@@ -601,7 +618,7 @@ export default function ComplaintsPage() {
                     <div key={c.trackingNumber} className="cp-list-row">
                       <div className="cp-list-main">
                         <div className="cp-list-number">{c.trackingNumber}</div>
-                        <div className="cp-list-meta">
+                        <div className="cp-list-meta" {...textDirectionProps(c.message)}>
                           {formatDate(c.createdAt)} · {c.message}
                         </div>
                       </div>
