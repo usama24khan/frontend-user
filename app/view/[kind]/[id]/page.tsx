@@ -36,22 +36,22 @@ const SITE_NAME = "KKB4 Housing Society";
 
 /**
  * Absolute base URL for og:url and for resolving the placeholder image.
- * Vercel exposes the deployment host; locally we fall back to localhost.
+ *
+ * Resolved from NEXT_PUBLIC_VERCEL_ENV, mirroring resolveApiUrl() in
+ * constants/phases.ts and the admin app's portal-URL resolver, so the canonical
+ * URL advertised in the preview card is the same stable host the admin actually
+ * put in the message. Using VERCEL_URL instead would emit the per-deployment
+ * hostname (frontend-user-<hash>.vercel.app), which differs from the shared link.
  */
 function siteBaseUrl(): string {
+  // Escape hatch for a custom domain, where the hardcoded hosts below are wrong.
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) return explicit.replace(/\/+$/, "");
 
-  // On Vercel, prefer the URL of THIS deployment. Checking
-  // VERCEL_PROJECT_PRODUCTION_URL first would make a preview deployment
-  // advertise the production domain in og:url, pointing the card at a different
-  // build than the one that rendered it.
-  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  const env = process.env.NEXT_PUBLIC_VERCEL_ENV;
+  if (env === "production") return "https://frontend-user-kappa.vercel.app";
+  if (env === "preview") {
+    return "https://frontend-user-git-development-usama-khans-projects-a0ecb0d1.vercel.app";
   }
   return "http://localhost:3000";
 }
