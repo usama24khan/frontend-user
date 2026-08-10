@@ -287,6 +287,29 @@
     "successBody": "The society office can now see your complaint and will contact you on the number you provided.",
     "fillAll": "Please fill in your name, mobile number, and complaint details.",
     "invalidMobile": "Please enter a valid mobile number.",
-    "failed": "Could not submit your complaint. Please try again."
+    "failed": "Could not submit your complaint. Please try again.",
+    "tabSubmit": "New Complaint",
+    "tabTrack": "Track Status",
+    "yourTrackingNumber": "Your tracking number",
+    "copy": "Copy number",
+    "copied": "Copied!",
+    "keepNumber": "Save this number — you will need it to check the status of this complaint later.",
+    "checkStatus": "Check status now",
+    "trackingNumber": "Tracking Number",
+    "trackingHint": "Enter the tracking number you received when submitting, e.g. CMP-2026-0001.",
+    "check": "Check",
+    "checking": "Checking…",
+    "enterTracking": "Please enter a tracking number.",
+    "lookupFailed": "Could not find that complaint. Check the number and try again.",
+    "submittedOn": "submitted",
+    "progress": "Progress",
+    "myComplaints": "My Complaints",
+    "noneOnDevice": "No complaints submitted from this device yet. You can still track any complaint using its tracking number above.",
+    "deviceOnlyHint": "Complaints submitted from this device. Clearing your browser data will remove this list — your tracking numbers still work.",
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "resolved": "Resolved"
+    }
   }
 }
