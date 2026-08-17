@@ -20,6 +20,18 @@ const recordItems = [
     ),
   },
   {
+    href: "/finance",
+    labelKey: "nav.finance",
+    icon: (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path d="M3 20h18" strokeLinecap="round" />
+        <rect x="5" y="11" width="3.5" height="6" rx="1" />
+        <rect x="10.5" y="7" width="3.5" height="10" rx="1" />
+        <rect x="16" y="13" width="3.5" height="4" rx="1" />
+      </svg>
+    ),
+  },
+  {
     href: "/notices",
     labelKey: "nav.notices",
     icon: (

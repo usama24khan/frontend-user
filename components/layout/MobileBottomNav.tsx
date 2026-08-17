@@ -50,14 +50,18 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  // Accounts replaces Blocks on the bar — residents ask where the money went far
+  // more often than they browse the block list, which stays in the sidebar.
   {
-    href: "/blocks",
-    label: "Blocks",
+    href: "/finance",
+    label: "Accounts",
     exact: false,
     icon: (
       <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-        <path d="M9 21V12h6v9" />
+        <path d="M3 20h18" strokeLinecap="round" />
+        <rect x="5" y="11" width="3.5" height="6" rx="1" />
+        <rect x="10.5" y="7" width="3.5" height="10" rx="1" />
+        <rect x="16" y="13" width="3.5" height="4" rx="1" />
       </svg>
     ),
   },

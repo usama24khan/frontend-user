@@ -4,5 +4,6 @@ export * from './plotService';
 export * from './blockService';
 export * from './phaseService';
 export * from './statsService';
+export * from './financeService';
 export * from './authService';
 export * from './complaintService';
