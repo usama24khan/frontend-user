@@ -185,6 +185,9 @@ const styles = `
     .filter-group { padding: 5px 8px; }
     .filter-label { display: none; }
     .filter-select { font-size: 12px; }
+    /* Thumb-sized on touch: these sit in a dense filter bar where a 21px
+       control is easy to miss and annoying to correct. */
+    .filter-select { min-height: 42px; padding-block: 0; }
     .filter-divider { height: 12px; }
   }
 
@@ -502,7 +505,11 @@ const styles = `
   .phase-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
   .phase-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
   .block-btn {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    min-height: 38px;
     font-size: 10px;
     font-weight: 700;
     padding: 4px 9px;

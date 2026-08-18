@@ -202,7 +202,11 @@ const styles = `
 
   /* Block buttons */
   .block-btn {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    min-height: 38px;
     font-size: 11px;
     font-weight: 700;
     padding: 4px 10px;
@@ -263,6 +267,9 @@ const styles = `
   }
   .block-header-left { display: flex; align-items: center; }
   .block-view-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
     font-size: 10.5px;
     font-weight: 600;
     color: var(--accent);
@@ -358,6 +365,9 @@ const styles = `
 
   /* Details link */
   .details-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
     font-size: 11px;
     font-weight: 700;
     color: var(--accent);

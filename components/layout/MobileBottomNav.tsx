@@ -176,6 +176,7 @@ export default function MobileBottomNav() {
         role="dialog"
         aria-modal="true"
         aria-label={t("nav.allPages")}
+        aria-hidden={!drawerOpen}
       >
         <div className="more-drawer-header">
           <span className="more-drawer-heading">{t("nav.allPages")}</span>
@@ -290,6 +291,19 @@ const drawerStyles = `
   }
   [dir="rtl"] .more-drawer { transform: translateX(-100%); }
   .more-drawer.open, [dir="rtl"] .more-drawer.open { transform: translateX(0); }
+  /* Hidden rather than only shifted aside: visibility takes the drawer's links
+     out of the tab order while it is closed, and the delay lets the slide-out
+     finish before it disappears. */
+  .more-drawer {
+    visibility: hidden;
+    transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1),
+                visibility 0s linear 240ms;
+  }
+  .more-drawer.open {
+    visibility: visible;
+    transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1),
+                visibility 0s linear 0s;
+  }
 
   .more-drawer-header {
     display: flex;

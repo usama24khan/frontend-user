@@ -130,6 +130,13 @@ const styles = `
     padding: 0;
   }
   .year-select option { background: #fff; color: #0f172a; }
+  /* On a touch screen the control itself has to be thumb-sized, not just the
+     pill around it: a select that is 18px tall inside a 30px pill means taps
+     near the pill's edge do nothing. */
+  @media (hover: none) {
+    .year-selector { padding-block: 0; min-height: 42px; }
+    .year-select { align-self: stretch; min-height: 42px; }
+  }
 
   /* ── Tabs ── */
   .tab-bar {
