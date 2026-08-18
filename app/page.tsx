@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { chargeForYear, prevailingRate } from "../utils/rates";
 import { useTranslation } from "react-i18next";
 import {
   BarChart,
@@ -882,7 +883,9 @@ export default function UserOverviewPage() {
                     const numYear = parseInt(year);
                     const payRecord = pinnedPlotData.payments?.find((p: any) => p.year === numYear);
                     const received = payRecord?.totalReceived || 0;
-                    const expected = payRecord?.totalDue || 4800;
+                    // Months summed rather than rate × 12, so 2022 comes to
+                    // 4,000: four months at 200 and eight at 400.
+                    const expected = payRecord?.totalDue || chargeForYear(Number(year));
                     const remaining = Math.max(0, expected - received);
                     const paidCount = MONTHS.filter((m) => payRecord?.payments?.[m.key] > 0).length;
 
@@ -893,7 +896,7 @@ export default function UserOverviewPage() {
                             {t("dashboard.paymentCalendar")} — {year}
                           </span>
                           <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", fontFamily: "JetBrains Mono, monospace" }}>
-                            {payRecord ? formatPKR(payRecord.mcRate) : "₨ 400"}{t("dashboard.perMonth")}
+                            {formatPKR(prevailingRate(Number(year)))}{t("dashboard.perMonth")}
                           </span>
                         </div>
 

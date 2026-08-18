@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { rateForMonth } from "../../../utils/rates";
 import { useParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { getPlotById } from "../../../services";
@@ -638,7 +639,8 @@ export default function PlotDetailPage() {
                   {t("plot.monthlyPaymentCalendar")} — {year}
                 </span>
                 <span className="rate-pill">
-                  {t("plot.rate")}: {formatPKR(sel.mcRate)}{t("dashboard.perMonth")}
+                  {t("plot.rate")}: {formatPKR(rateForMonth(sel.year, 12))}
+                  {t("dashboard.perMonth")}
                 </span>
               </div>
 
@@ -646,7 +648,9 @@ export default function PlotDetailPage() {
                 {MONTH_KEYS.map((mk) => {
                   const val = sel.payments?.[mk] || 0;
                   const isPaid = val > 0;
-                  const isFull = val >= sel.mcRate;
+                  // Each month against its own charge: Jan–Apr 2022 are 200, so
+                  // comparing them to the year's 400 would call them short.
+                  const isFull = val >= rateForMonth(sel.year, mk);
                   return (
                     <div
                       key={mk}
