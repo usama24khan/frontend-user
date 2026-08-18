@@ -23,7 +23,9 @@
     "searchPlaceholder": "Search by plot number or owner name…",
     "records": "Records",
     "searchRecords": "Search Records",
-    "complaint": "Complaint"
+    "complaint": "Complaint",
+    "more": "More",
+    "allPages": "All pages"
   },
   "societyNotices": {
     "eyebrow": "Notices",
