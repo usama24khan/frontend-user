@@ -944,3 +944,86 @@ body {
     animation: vt-fade-out 0.14s ease-out both;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Urdu (Nastaliq) control metrics
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Noto Nastaliq Urdu's ascenders and descenders run roughly twice the height of
+   the Latin face at the same font-size — it is a calligraphic script that slopes
+   across several vertical levels. A control whose height was tuned for one line
+   of Latin therefore either clips the script or crams it against the border.
+
+   Everything here is scoped under `html[dir="rtl"]`, so the English layout is
+   untouched.
+
+   Why `html[dir="rtl"]` rather than `[dir="rtl"]`: pages inject their own <style>
+   blocks, which land after this file in the document. A bare attribute selector
+   (0,1,0) ties with a page's `.chip` (0,1,0) and loses on source order. Adding
+   the `html` type selector wins the comparison and keeps this file free of
+   !important.
+
+   `:not(:has(> svg:only-child))` spares icon-only buttons: they contain no Urdu
+   to lay out, and padding them would stretch a square control into a lozenge.
+   Where :has() is unsupported the browser drops the whole selector, so those
+   buttons simply keep their existing metrics — the safe direction to fail.
+
+   Keep this block last in the file. */
+
+/* Leading first: this alone stops the script being clipped. */
+html[dir="rtl"] button,
+html[dir="rtl"] select,
+html[dir="rtl"] textarea,
+html[dir="rtl"] [role="button"],
+html[dir="rtl"] a {
+  line-height: 1.9;
+}
+
+/* Then real vertical padding for controls that hold a line of text, instead of
+   relying on a Latin-tuned min-height plus flex centring. `height: auto` lets a
+   control that still overflows grow rather than clip. */
+html[dir="rtl"] button:not(:has(> svg:only-child)),
+html[dir="rtl"] select,
+html[dir="rtl"] [role="button"]:not(:has(> svg:only-child)) {
+  padding-block: 0.42em;
+  min-height: 44px;
+  height: auto;
+}
+
+/* Text inputs are the one place extra leading hurts — a tall line box in a
+   single-line field pushes the value off centre — so they get room, not leading. */
+html[dir="rtl"] input {
+  line-height: normal;
+  padding-block: 0.42em;
+  min-height: 44px;
+}
+
+html[dir="rtl"] textarea {
+  padding-block: 0.42em;
+}
+
+/* Pills set their radius against a Latin height; once the box grows for Nastaliq
+   a fixed radius reads as a lozenge, so round it fully. */
+html[dir="rtl"] .chip,
+html[dir="rtl"] .pill,
+html[dir="rtl"] .badge,
+html[dir="rtl"] .status-pill {
+  border-radius: 999px;
+}
+
+/* Phones: thumb-sized targets, and more room because Urdu labels are generally
+   longer than their English counterparts and so wrap sooner in a narrow column. */
+@media (max-width: 640px) {
+  html[dir="rtl"] button:not(:has(> svg:only-child)),
+  html[dir="rtl"] select,
+  html[dir="rtl"] [role="button"]:not(:has(> svg:only-child)) {
+    min-height: 48px;
+    padding-block: 0.5em;
+    /* Both lines of a wrapped label need to clear each other. */
+    line-height: 2;
+  }
+
+  html[dir="rtl"] input {
+    min-height: 48px;
+  }
+}
