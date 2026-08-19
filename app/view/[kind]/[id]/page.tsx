@@ -12,6 +12,8 @@
  */
 
 import type { Metadata } from "next";
+import en from "../../../../locales/en/common.json";
+import ur from "../../../../locales/ur/common.json";
 import { API_URL } from "../../../../constants/phases";
 
 const KINDS = ["receipt", "notice"] as const;
@@ -61,6 +63,21 @@ function siteBaseUrl(): string {
  * metadata and the page body degrade instead of throwing — a broken thumbnail or
  * a slow API must not turn the resident's link into an error page.
  */
+/**
+ * Translations for this page.
+ *
+ * This is a server component, so react-i18next's hook is unavailable — and there
+ * is no session to read a preference from either, since the route is public and
+ * WhatsApp's crawler sends no cookies. The document itself carries the language
+ * it was issued in, which is the right answer anyway: an Urdu notice should land
+ * on an Urdu page. The two failure states have no document, so they fall back to
+ * English.
+ */
+function copy(language: "en" | "ur" = "en") {
+  const bundle = language === "ur" ? ur : en;
+  return bundle.documentView as Record<string, string>;
+}
+
 async function fetchDocument(kind: string, id: string): Promise<PublicDocument | null> {
   if (!KINDS.includes(kind as Kind)) return null;
   try {
@@ -138,35 +155,33 @@ export default async function DocumentViewPage({
 }) {
   const { kind, id } = await params;
   const doc = await fetchDocument(kind, id);
+  const c = copy(doc?.language);
+  const rtl = doc?.language === "ur";
 
   return (
     <>
       <style>{styles}</style>
-      <div className="dv-root">
+      {/* dir is set here rather than on <html>: the surrounding AppShell picks a
+          direction from the signed-in user's preference, and this route is public. */}
+      <div className="dv-root" dir={rtl ? "rtl" : "ltr"}>
         <header className="dv-header">
           <img src="/icons/logo.png" alt="" className="dv-logo" />
           <div className="dv-header-text">
             <p className="dv-eyebrow">{SITE_NAME}</p>
-            <h1 className="dv-title">{doc ? doc.title : "Document unavailable"}</h1>
+            <h1 className="dv-title">{doc ? doc.title : c.unavailableTitle}</h1>
             {doc?.subtitle && <p className="dv-subtitle">{doc.subtitle}</p>}
           </div>
         </header>
 
         {!doc ? (
           <div className="dv-card dv-empty">
-            <p className="dv-empty-title">We couldn&apos;t find this document</p>
-            <p className="dv-empty-body">
-              The link may be incorrect or the document may have been removed.
-              Please contact the society office.
-            </p>
+            <p className="dv-empty-title">{c.notFoundTitle}</p>
+            <p className="dv-empty-body">{c.notFoundBody}</p>
           </div>
         ) : !doc.pdfAvailable ? (
           <div className="dv-card dv-empty">
-            <p className="dv-empty-title">This document isn&apos;t available online</p>
-            <p className="dv-empty-body">
-              It was issued before documents were stored online. Please contact the
-              society office for a copy.
-            </p>
+            <p className="dv-empty-title">{c.offlineTitle}</p>
+            <p className="dv-empty-body">{c.offlineBody}</p>
           </div>
         ) : (
           <>
@@ -188,16 +203,14 @@ export default async function DocumentViewPage({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Open PDF
+                {c.openPdf}
               </a>
               <a className="dv-btn dv-btn-ghost" href={doc.pdfUrl} download>
-                Download
+                {c.download}
               </a>
             </div>
 
-            <p className="dv-note">
-              If the document doesn&apos;t appear above, tap &ldquo;Open PDF&rdquo;.
-            </p>
+            <p className="dv-note">{c.iframeNote}</p>
           </>
         )}
       </div>
@@ -206,6 +219,12 @@ export default async function DocumentViewPage({
 }
 
 const styles = `
+  [dir="rtl"].dv-root,
+  [dir="rtl"] .dv-root {
+    font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', sans-serif;
+    line-height: 2;
+  }
+
   .dv-root {
     max-width: 900px;
     margin: 0 auto;
