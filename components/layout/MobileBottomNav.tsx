@@ -68,6 +68,12 @@ const icons = {
       <path d="M8 21V11M12 21V3M16 21v-6" strokeLinecap="round" />
     </svg>
   ),
+  map: (s = 22) => (
+    <svg width={s} height={s} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 3.5L3 6v14.5l6-2.5 6 2.5 6-2.5V3.5l-6 2.5-6-2.5z" />
+      <path d="M9 3.5V18M15 6v14.5" />
+    </svg>
+  ),
 } as const;
 
 type IconKey = keyof typeof icons;
@@ -108,6 +114,7 @@ const DRAWER_SECTIONS: { titleKey: string; items: NavEntry[] }[] = [
     items: [
       { href: "/", labelKey: "nav.overview", icon: "home", exact: true },
       { href: "/blocks", labelKey: "nav.blocks", icon: "blocks" },
+      { href: "/map", labelKey: "nav.map", icon: "map" },
       { href: "/phases", labelKey: "nav.phases", icon: "phases" },
       { href: "/leaderboard", labelKey: "nav.leaderboard", icon: "leaderboard" },
     ],
@@ -115,7 +122,7 @@ const DRAWER_SECTIONS: { titleKey: string; items: NavEntry[] }[] = [
 ];
 
 /** Pages that only exist behind More — used to light up the More tab. */
-const DRAWER_ONLY = ["/complaints", "/blocks", "/phases", "/leaderboard"];
+const DRAWER_ONLY = ["/complaints", "/blocks", "/map", "/phases", "/leaderboard"];
 
 export default function MobileBottomNav() {
   const { t } = useTranslation();

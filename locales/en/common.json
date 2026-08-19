@@ -11,6 +11,7 @@
     "overview": "Overview",
     "dashboard": "Dashboard",
     "blocks": "Blocks",
+    "map": "Society Map",
     "phases": "Phases",
     "leaderboard": "Leaderboard",
     "plots": "Plots",
@@ -478,5 +479,58 @@
     "copied_one": "{{count}} expense copied",
     "copied_other": "{{count}} expenses copied",
     "noActivity": "No activity"
+  },
+  "societyMap": {
+    "parks": "Parks",
+    "fit": "Fit",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "svgLabel": "KKB4 society site plan",
+    "blockUpper": "BLOCK",
+    "blockNamed": "{{block}} Block",
+    "unverified": "Number unverified",
+    "hintDesktop": "Scroll to zoom, drag to pan.",
+    "hintTouch": "Pinch to zoom, drag to pan, tap a plot for details.",
+    "hintDashed": "Dashed outlines are plot numbers the printed plan was too blurred to read — they were derived from the numbering sequence.",
+    "category": {
+      "mortgage": "Mortgage Plots",
+      "prime": "Prime Plots",
+      "odd": "Odd Size Plots",
+      "amenity": "Amenity Plots",
+      "regular": "Regular Plots"
+    },
+    "zone": {
+      "services": "Services Area",
+      "central-park": "Central Park",
+      "school": "School",
+      "mall": "Shopping Mall",
+      "mosque": "Mosque",
+      "community": "Community Centre",
+      "office": "Office",
+      "graveyard": "Graveyard"
+    },
+    "title": "Society Map",
+    "subtitleUser": "Find any plot on the approved site plan. Tap a plot to see its block and type.",
+    "searchPlaceholderUser": "Find a plot number…",
+    "zoomToBlock": "Zoom to a block",
+    "plotTypeLabel": "Plot type",
+    "ownerLabel": "Owner",
+    "notInRegisterOwner": "Not in the register",
+    "close": "Close",
+    "viewRecord": "View full record →",
+    "uncertainNote": "This plot number could not be read clearly from the printed plan, so it was worked out from the numbering order. Please confirm it before relying on it.",
+    "aboutTitle": "About this map",
+    "aboutBody": "Redrawn from the approved site plan. It shows {{count}} plots across blocks A to L. Plot numbers run in one continuous sequence around each block, and numbers 8 to 27 do not appear on the plan at all.",
+    "aboutUncertain": "{{count}} plot numbers are shown with a dashed outline and a “?”. The printed plan was creased there, so those numbers were worked out from the sequence rather than read directly."
+  },
+  "documentView": {
+    "unavailableTitle": "Document unavailable",
+    "notFoundTitle": "We couldn’t find this document",
+    "notFoundBody": "The link may be incorrect or the document may have been removed. Please contact the society office.",
+    "offlineTitle": "This document isn’t available online",
+    "offlineBody": "It was issued before documents were stored online. Please contact the society office for a copy.",
+    "openPdf": "Open PDF",
+    "download": "Download",
+    "iframeNote": "If the document doesn’t appear above, tap “Open PDF”."
   }
 }

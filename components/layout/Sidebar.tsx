@@ -76,6 +76,16 @@ const exploreItems = [
     ),
   },
   {
+    href: "/map",
+    labelKey: "nav.map",
+    icon: (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path d="M9 3.5L3 6v14.5l6-2.5 6 2.5 6-2.5V3.5l-6 2.5-6-2.5z" />
+        <path d="M9 3.5V18M15 6v14.5" />
+      </svg>
+    ),
+  },
+  {
     href: "/phases",
     labelKey: "nav.phases",
     icon: (
