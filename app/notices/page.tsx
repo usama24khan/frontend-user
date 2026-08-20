@@ -80,19 +80,41 @@ const styles = `
   }
   .rn-tag.year { background: #fffbeb; color: #92400e; }
   .rn-row-meta {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 2px 7px;
     font-size: 12px; color: #64748b; font-weight: 500;
     font-variant-numeric: tabular-nums;
+    margin: 0;
+  }
+  .rn-meta-sep { color: #cbd5e1; }
+
+  .rn-deadline {
+    display: inline-flex; align-items: center;
+    margin: 5px 0 0;
+    padding: 2px 8px; border-radius: 6px;
+    background: #fffbeb; color: #92400e;
+    font-size: 11.5px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rn-row-actions {
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+    justify-content: flex-end;
   }
   .rn-due {
-    text-align: right;
+    /* Never let a currency figure break across lines. */
+    flex-shrink: 0; white-space: nowrap;
+    text-align: end;
     font-size: 13px; font-weight: 800;
     color: #dc2626;
     font-variant-numeric: tabular-nums;
-    margin-right: 12px;
+    margin-inline-end: auto;
   }
   .rn-download {
-    display: inline-flex; align-items: center; gap: 6px;
-    height: 38px; padding: 0 14px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    flex-shrink: 0; white-space: nowrap;
+    min-height: 38px; padding: 0 14px; border-radius: 10px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #fff; font-size: 12.5px; font-weight: 700;
     border: none; cursor: pointer; text-decoration: none;
@@ -122,6 +144,28 @@ const styles = `
     padding: 60px 0;
     display: flex; align-items: center; justify-content: center;
   }
+
+  /* ── Phones ──
+     The row was icon | title+meta | dues | download on one line. Below ~640px
+     there is no room for four, so the dues and the download drop to their own
+     line and the title gets the full width instead of being crushed. */
+  @media (max-width: 640px) {
+    .rn-row {
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 10px 12px;
+      padding: 14px 16px;
+    }
+    .rn-row-icon { width: 34px; height: 34px; }
+    .rn-row-main { flex: 1 1 auto; }
+    /* flex-basis 100% is what forces the wrap — without it the row would just
+       keep shrinking the title to fit everything on one line. */
+    .rn-row-actions { flex: 1 0 100%; }
+    .rn-download { min-height: 44px; padding: 0 18px; font-size: 13px; }
+    .rn-row-title { font-size: 13.5px; line-height: 1.45; }
+    .rn-row-meta { font-size: 11.5px; }
+  }
+
 `;
 
 export default function SocietyNoticesPage() {
@@ -206,31 +250,49 @@ export default function SocietyNoticesPage() {
                     {n.targetLabel ||
                       (n.type === "plot" ? t("societyNotices.plotNotice") : n.targetId)}
                   </p>
+                  {/* Separate elements rather than one interpolated string: on a
+                      phone the joined "language · date · Deadline: date" ran wider
+                      than the row and dragged the layout with it. These wrap. */}
                   <p className="rn-row-meta">
-                    {n.language === "ur"
-                      ? t("societyNotices.languageUrdu")
-                      : t("societyNotices.languageEnglish")}
-                    {" · "}
-                    {new Date(n.createdAt).toLocaleDateString()}
-                    {n.paymentDeadline
-                      ? ` · ${t("societyNotices.deadline")}: ${new Date(n.paymentDeadline).toLocaleDateString()}`
-                      : ""}
+                    <span>
+                      {n.language === "ur"
+                        ? t("societyNotices.languageUrdu")
+                        : t("societyNotices.languageEnglish")}
+                    </span>
+                    <span className="rn-meta-sep" aria-hidden="true">
+                      ·
+                    </span>
+                    <span>{new Date(n.createdAt).toLocaleDateString()}</span>
                   </p>
+                  {/* A deadline is the one thing a resident acts on, so it gets its
+                      own line and its own emphasis instead of trailing a grey run-on. */}
+                  {n.paymentDeadline && (
+                    <p className="rn-deadline">
+                      {t("societyNotices.deadline")}:{" "}
+                      {new Date(n.paymentDeadline).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
-                {n.totalDue > 0 && (
-                  <span className="rn-due">{formatPKR(n.totalDue)}</span>
-                )}
-                {n.pdfPath && (
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(n.pdfPath)}
-                    className="rn-download"
-                  >
-                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    {t("societyNotices.download")}
-                  </button>
+                {/* Grouped so the phone layout can drop the pair onto its own
+                    line instead of squeezing them against the title. */}
+                {(n.totalDue > 0 || n.pdfPath) && (
+                  <div className="rn-row-actions">
+                    {n.totalDue > 0 && (
+                      <span className="rn-due">{formatPKR(n.totalDue)}</span>
+                    )}
+                    {n.pdfPath && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(n.pdfPath)}
+                        className="rn-download"
+                      >
+                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        {t("societyNotices.download")}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             ))
