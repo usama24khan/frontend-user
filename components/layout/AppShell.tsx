@@ -5,6 +5,7 @@ import { ViewTransition } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import MobileBottomNav from "./MobileBottomNav";
+import MobileTopBar from "./MobileTopBar";
 import { FeedbackProvider } from "../feedback/FeedbackContext";
 import StoreProvider from "../providers/StoreProvider";
 import AuthGuard from "../providers/AuthGuard";
@@ -143,6 +144,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               {/* Hide Navbar on ≤768px mobile; show on 769px+ */}
               {!isMobile && <Navbar onMenuClick={() => setSidebarOpen(true)} />}
+
+              {/* Phones get no Navbar, so this supplies the back affordance and
+                  the page name the Navbar provides on wider screens. */}
+              {isMobile && <MobileTopBar />}
 
               {/* Pull-to-refresh indicator (mobile only) */}
               {isMobile && (pullDistance > 8 || refreshing) && (
