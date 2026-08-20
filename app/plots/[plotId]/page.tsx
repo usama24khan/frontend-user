@@ -388,10 +388,39 @@ const styles = `
     letter-spacing: 0.12em;
     color: var(--text-muted);
   }
+  .history-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
   .history-table {
     width: 100%;
-    border-collapse: collapse;
+    /* "separate", not "collapse": a collapsed table drops the borders on
+       sticky-positioned cells in Chrome and Safari, so the pinned Year column
+       would lose its row lines. Row borders live on the cells instead. */
+    border-collapse: separate;
+    border-spacing: 0;
+    /* Six columns of figures do not fit a phone; scroll rather than crush them. */
+    min-width: 620px;
   }
+
+  /* Pin Year, so a row stays identifiable once the figures scroll away. */
+  /* inset-inline-start, not left: in Urdu the table flows right-to-left, so the
+     first column renders on the right and must pin to that edge. The divider
+     flips with it. */
+  .history-table th:first-child,
+  .history-table td:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  [dir="rtl"] .history-table th:first-child,
+  [dir="rtl"] .history-table td:first-child { box-shadow: -1px 0 0 var(--border); }
+  .history-table thead th:first-child { z-index: 2; }
+  .history-table tbody tr:hover td:first-child { background: var(--surface-2); }
   .history-table th {
     font-size: 10px;
     font-weight: 600;
@@ -399,24 +428,25 @@ const styles = `
     letter-spacing: 0.1em;
     color: var(--text-muted);
     padding: 10px 18px;
-    text-align: left;
+    text-align: start;
     border-bottom: 1px solid var(--border);
   }
-  .history-table th.right { text-align: right; }
+  .history-table th.right { text-align: end; }
   .history-table tbody tr {
-    border-bottom: 1px solid var(--border);
     cursor: pointer;
     transition: background 0.12s;
   }
-  .history-table tbody tr:last-child { border-bottom: none; }
-  .history-table tbody tr:hover { background: var(--surface-2); }
+  .history-table tbody tr:hover td { background: var(--surface-2); }
   .history-table td {
     padding: 11px 18px;
     font-size: 12.5px;
     color: var(--text-secondary);
     font-family: 'JetBrains Mono', monospace;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
   }
-  .history-table td.right { text-align: right; }
+  .history-table tbody tr:last-child td { border-bottom: none; }
+  .history-table td.right { text-align: end; }
   .history-table td.year-cell {
     font-weight: 800;
     color: var(--text-primary);
@@ -718,7 +748,7 @@ export default function PlotDetailPage() {
             <div className="history-card-head">
               <span className="history-title">{t("plot.annualDuesHistory")}</span>
             </div>
-            <div style={{ overflowX: "auto" }}>
+            <div className="history-table-scroll">
               <table className="history-table">
                 <thead>
                   <tr>

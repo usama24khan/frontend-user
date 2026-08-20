@@ -519,6 +519,31 @@ input[type="number"] { -moz-appearance: textfield; }
 .data-table tbody tr:hover td { background: var(--color-primary-50); }
 .data-table tbody tr:last-child td { border-bottom: none; }
 
+/* Pin the first column while the rest scrolls sideways — the pattern the admin
+   app uses. Without it a narrow screen pushes the right-most column (usually the
+   action link) out of reach with nothing to anchor the row to.
+
+   The header's own sticky rule already claims z-index 2, so the top-left cell
+   needs 3 to sit above both axes. The right-hand hairline matters more than it
+   looks: with no divider, text from the next column slides under an opaque
+   background and the table reads as broken rather than pinned. */
+.data-table-sticky-first th:first-child,
+.data-table-sticky-first td:first-child {
+  position: sticky;
+  /* Logical, not `left`: in Urdu the first column renders on the right edge. */
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  box-shadow: 1px 0 0 var(--color-border-soft);
+}
+.data-table-sticky-first thead th:first-child {
+  z-index: 3;
+  background: var(--color-surface-2);
+}
+[dir="rtl"] .data-table-sticky-first th:first-child,
+[dir="rtl"] .data-table-sticky-first td:first-child { box-shadow: -1px 0 0 var(--color-border-soft); }
+.data-table-sticky-first tbody tr:hover td:first-child { background: var(--color-primary-50); }
+
 /* Right-aligned number column */
 .data-table th.num, .data-table td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
 

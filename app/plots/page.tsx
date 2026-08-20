@@ -283,10 +283,42 @@ const styles = `
   .block-view-link:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
   /* ── Table ── */
+  .plot-table-scroll {
+    overflow-x: auto;
+    /* Momentum scrolling on iOS, and no vertical rubber-banding stolen from the
+       page while dragging the table sideways. */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
   .plot-table {
     width: 100%;
-    border-collapse: collapse;
+    /* "separate" rather than "collapse": a collapsed table drops the borders on
+       sticky-positioned cells in Chrome and Safari, so the pinned column would
+       lose its row lines. Row borders therefore live on the cells below. */
+    border-collapse: separate;
+    border-spacing: 0;
+    /* Narrower than this and the Details link is squeezed out of reach; the
+       scroller takes over instead of the columns collapsing. */
+    min-width: 580px;
   }
+
+  /* Keep the plot number in view while the rest of the row scrolls. */
+  /* inset-inline-start, not left: in Urdu the table flows right-to-left, so the
+     first column renders on the right and must pin to that edge. The divider
+     flips with it. */
+  .plot-table th:first-child,
+  .plot-table td:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  [dir="rtl"] .plot-table th:first-child,
+  [dir="rtl"] .plot-table td:first-child { box-shadow: -1px 0 0 var(--border); }
+  .plot-table thead th:first-child { z-index: 2; }
+  .plot-table tbody tr:hover td:first-child { background: var(--surface-2); }
   .plot-table thead tr {
     background: transparent;
   }
@@ -297,24 +329,24 @@ const styles = `
     letter-spacing: 0.1em;
     color: var(--text-muted);
     padding: 10px 18px;
-    text-align: left;
+    /* start, not left, so headers follow the writing direction. */
+    text-align: start;
     border-bottom: 1px solid var(--border);
   }
   .plot-table th.center { text-align: center; }
-  .plot-table th.right { text-align: right; }
+  .plot-table th.right { text-align: end; }
 
-  .plot-table tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background 0.12s;
-  }
-  .plot-table tbody tr:last-child { border-bottom: none; }
-  .plot-table tbody tr:hover { background: var(--surface-2); }
+  .plot-table tbody tr { transition: background 0.12s; }
+  .plot-table tbody tr:hover td { background: var(--surface-2); }
 
   .plot-table td {
     padding: 10px 18px;
     font-size: 12.5px;
     color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
   }
+  .plot-table tbody tr:last-child td { border-bottom: none; }
   .td-plot-code {
     font-weight: 700;
     color: var(--text-primary);
@@ -330,7 +362,7 @@ const styles = `
     white-space: nowrap;
   }
   .td-center { text-align: center; }
-  .td-right { text-align: right; }
+  .td-right { text-align: end; }
   .td-phase {
     font-size: 11px;
     font-weight: 600;
@@ -623,43 +655,46 @@ export default function PlotsPage() {
                   </Link>
                 </div>
 
-                {/* Table */}
-                <table className="plot-table">
-                  <thead>
-                    <tr>
-                      <th>{t("plots.th.plotNo")}</th>
-                      <th>{t("plots.th.owner")}</th>
-                      <th className="center">{t("plots.th.status")}</th>
-                      <th className="right">{t("plots.th.phase")}</th>
-                      <th className="right" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {blockPlots.map((p) => (
-                      <tr key={p._id}>
-                        <td className="td-plot-code">{p.plotCode || p.plotBlock}</td>
-                        <td className="td-owner">{p.ownerName}</td>
-                        <td className="td-center">
-                          <span className={`status-badge ${
-                            p.allotmentStatus === "Active"
-                              ? "badge-active"
-                              : p.allotmentStatus === "Cancelled"
-                              ? "badge-cancelled"
-                              : "badge-other"
-                          }`}>
-                            {p.allotmentStatus}
-                          </span>
-                        </td>
-                        <td className="td-right td-phase">{p.phase}</td>
-                        <td className="td-right">
-                          <Link href={`/plots/${p._id}`} className="details-link">
-                            {t("plots.details")} →
-                          </Link>
-                        </td>
+                {/* Table. The scroller lives inside .block-card, which clips to
+                    its rounded corners — so the table needs its own overflow. */}
+                <div className="plot-table-scroll">
+                  <table className="plot-table">
+                    <thead>
+                      <tr>
+                        <th>{t("plots.th.plotNo")}</th>
+                        <th>{t("plots.th.owner")}</th>
+                        <th className="center">{t("plots.th.status")}</th>
+                        <th className="right">{t("plots.th.phase")}</th>
+                        <th className="right" />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {blockPlots.map((p) => (
+                        <tr key={p._id}>
+                          <td className="td-plot-code">{p.plotCode || p.plotBlock}</td>
+                          <td className="td-owner">{p.ownerName}</td>
+                          <td className="td-center">
+                            <span className={`status-badge ${
+                              p.allotmentStatus === "Active"
+                                ? "badge-active"
+                                : p.allotmentStatus === "Cancelled"
+                                ? "badge-cancelled"
+                                : "badge-other"
+                            }`}>
+                              {p.allotmentStatus}
+                            </span>
+                          </td>
+                          <td className="td-right td-phase">{p.phase}</td>
+                          <td className="td-right">
+                            <Link href={`/plots/${p._id}`} className="details-link">
+                              {t("plots.details")} →
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
 
